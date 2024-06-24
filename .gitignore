@@ -4,3 +4,4 @@ test_data/
 test_data/*
 projects/
 projects/*
+*.log
