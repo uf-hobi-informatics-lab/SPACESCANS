@@ -4,8 +4,6 @@ import logging
 import os
 import json
 import pandas as pd
-import subprocess
-
 from datetime import datetime
 
 from spacescans.dataclean import address_cleaning as addr
@@ -22,11 +20,16 @@ valid_log_levels = {
 }
 
 project_name = ''
+
+
 #=========== End Global Variables =========
 
 
 #============ Helper Functions =================
 def get_project_name(name='new_project'):
+    if name == '':
+        name = 'new_project'
+    
     if not os.path.exists(os.getcwd()+f'/projects/{name}.json'):
         return f'{name}'
     else:
@@ -34,19 +37,24 @@ def get_project_name(name='new_project'):
         # Iterate until a project name does not exist
         while True:
             if not os.path.exists(os.getcwd()+f'/projects/{name}_{i}.json'):
-                return f'{name}'
+                return f'{name}_{i}'
             i+=1
 
 def is_valid_date(date):
     # Verify the correctness of the date
     #datetime.strptime(date, '%m/%d/%Y')
     try:
-        datetime.strptime(date, '%m/%d/%Y')
+        datetime.strptime(date, '%Y-%m-%d')
         return True
     except ValueError:
         return False
 
 def is_valid_project(project_name):
+    try:
+        with open(f'projects/{project_name}.json','r') as f:
+            return True
+    except Exception as e:
+        return False
     
 
 #============ End Helper Functions ================
@@ -66,34 +74,36 @@ def list_projects():
     #Iterate over the projects and list them out
     i = 1
     for proj in projects:
+        proj = proj.replace(".json", "")
         print(f'{i}. {proj}')
         i+=1
 
 def build_project(project_name, start_date, end_date, geoid, filepath):
 
     if project_name is None:
-        project_name = input("Please enter a name for your project: ")
-        project_name = get_project_name(project_name)
-        # Pass the name to the function to handle duplicate project names
+        project_name = input("Please enter a name for your project or hit enter to give a default name: ")
+    project_name = get_project_name(project_name)
+    # Pass the name to the function to handle duplicate project names
+    
 
     # Get necessary values or validate passed in values
     if start_date is None:
-        start_date = input("Please input a start date for the study period in the format mm/dd/yyyy: ")
+        start_date = input("Please input a start date for the study period in the format yyyy-mm-dd: ")
         while not is_valid_date(start_date):
-            start_date = input("Date invalid! Please input a start date for the study period in the format mm/dd/yyyy: ")
+            start_date = input("Date invalid! Please input a start date for the study period in the format yyyy-mm-dd: ")
     else:
         # Then the user passed in a date, we still have to validate it
         while not is_valid_date(start_date):
-            start_date = input("Date invalid! Please input a start date for the study period in the format mm/dd/yyyy: ")
+            start_date = input("Date invalid! Please input a start date for the study period in the format yyyy-mm-dd: ")
     
     if end_date is None:
-        end_date = input("Please input an end date for the study period in the format mm/dd/yyyy: ")
+        end_date = input("Please input an end date for the study period in the format yyyy-mm-dd: ")
         while not is_valid_date(end_date):
-            end_date = input("Date invalid! Please input an end date for the study period in the format mm/dd/yyyy: ")
+            end_date = input("Date invalid! Please input an end date for the study period in the format yyyy-mm-dd: ")
     else:
         # Then the user passed in a date, we still have to validate it
         while not is_valid_date(end_date):
-            end_date = input("Date invalid! Please input an end date for the study period in the format mm/dd/yyyy: ")
+            end_date = input("Date invalid! Please input an end date for the study period in the format yyyy-mm-dd: ")
 
     if geoid is None:
         geoid = input("Please give the geoidentifier for this dataset. (Options: zip9,): ")
@@ -134,12 +144,13 @@ def build_project(project_name, start_date, end_date, geoid, filepath):
     with open(f'projects/{project_name}.json','w') as f:
         json.dump(data, f, indent=4)
 
-    print(f'Sucessfully created {project_name}.json in projects/!')
+    print(f'Sucessfully created {project_name}.json in projects folder!')
     logger.info("Successfully wrote out the project file")
 
 
 def run_address_cleaning(project_name):
-
+    
+    logger.info(f'Performing data_clean for {project_name}...')
     with open(f'projects/{project_name}.json','r') as f:
         project = json.load(f)
     
@@ -154,6 +165,7 @@ def run_address_cleaning(project_name):
     patient_file = pd.read_csv(file_path, converters = {'ADDRESS_ZIP9': str})
     zip9_file = pd.read_csv('test_data/combined_zip9s.csv', converters = {'AREAKEY': str})
 
+
     addr.validate_csvs(patient_file, zip9_file)
     ldszip9 = addr.filter_good_zip9s(patient_file, zip9_file)
     ids_with_missingness = addr.find_ids_with_missingness(ldszip9)
@@ -162,15 +174,18 @@ def run_address_cleaning(project_name):
     ldsz9_continuous = addr.fix_gaps_overlaps_dupes(ldsz9_no_nulls)
     ldsz9_in_daterange = addr.limit_timeframe(ldsz9_continuous, start_date, end_date)
 
+    logger.info('Success!')
     outfile = project_name + '_cleaned_patient_data.csv'
-    ldsz9_in_daterange.to_csv(os.path.join('output', outfile), index=False)
+
+    outpath = os.path.join('output', outfile)
+    logger.info(f'Writing the output to {outpath}')
+    ldsz9_in_daterange.to_csv(outpath, index=False)
 
 
 
 def main():
-    # Set a default project name before loading an existing project from save
-    project_name = get_project_name()
 
+    #============= PARSER DECLARATIONS ==============
     # Define parser and command line arguments
     parser = argparse.ArgumentParser(prog='run_spacescans.py')
     subparser = parser.add_subparsers(dest='command')
@@ -231,26 +246,49 @@ def main():
         help='The location of your patient dataset.'
     )
     #### NEED TO ADD FLAGS AND SUCH TO  LINK PARSER
-
-
     show_catalog = subparser.add_parser('catalog', help='Display the full exposome catalog available in the databases')
-    print("")
-
-
-
-
-
-    # Build logger with proper parameters - COME BACK TO THIS 
+    #=========== END PARSER DECLARATIONS ============
+    
+    #================ BUILD LOGGER ==================
     log_directory = 'log_files'
     if not os.path.exists(log_directory):
         os.makedirs(log_directory)
     
-    log_file_path = os.path.join(log_directory, f'{project_name}.log')
+    logger.setLevel(valid_log_levels['INFO'])
+
+    now = datetime.now()
+    formatted_date_time = now.strftime("%m-%d-%Y %H:%M:%S")
+    log_file_path = os.path.join(log_directory, f'{formatted_date_time}.log')
+
+    # Create a file handler
+    file_handler = logging.FileHandler(log_file_path, 'w')
+    file_handler.setLevel(logging.DEBUG)
+
+    # Create a console handler
+    console_handler = logging.StreamHandler()
+    console_handler.setLevel(logging.DEBUG)
+
+    # Create a formatter and add it to the handlers
+    formatter = logging.Formatter('%(asctime)s %(levelname)s - %(message)s', datefmt='%Y-%m-%d %H:%M:%S')
+    file_handler.setFormatter(formatter)
+    console_handler.setFormatter(formatter)
+
+    # Add the handlers to the logger
+    logger.addHandler(file_handler)
+    logger.addHandler(console_handler)
+    #=============== END LOGGER BUILD ===============
+
+
+
+
     args = parser.parse_args()
-    # Handle args
+    logger.debug(f'The following arguments were passed in: {args}')
 
     if args.command=='clean_data':
-        run_address_cleaning(args.project_name)
+        if is_valid_project(args.project_name):
+            run_address_cleaning(args.project_name)
+        else:
+            logger.error(f'Could not find project named \'{args.project_name}\'')
     elif args.command=='projects':
         list_projects()
     elif args.command=='create_project':
