@@ -203,22 +203,22 @@ def fix_nulls(ldszip9: pd.DataFrame, missing_ids: list, proj_start_date, proj_en
             A dataframe with no null start or end dates.
     """
     ldsz9_no_nulls = ldszip9[~ldszip9['PATID'].isin(missing_ids)]
-    logger.info('DF initialized with non-missing ids.')
+    logger.debug('DF initialized with non-missing ids.')
 
     # Index patids
     ldszip9 = ldszip9.sort_values(by=['PATID', 'ADDRESS_PERIOD_START', 'ADDRESS_PERIOD_END'])
-    logger.info('DF sorted')
+    logger.debug('DF sorted')
     indexed_patids = indexer(ldszip9)
-    logger.info('DF indexed')
+    logger.debug('DF indexed')
     id_set = set(missing_ids)
-    logger.info('List to set')
+    logger.debug('List to set')
     indexed_patids_with_missingness = [x for x in indexed_patids if x[0] in id_set]
-    logger.info('ID list created')
+    logger.debug('ID list created')
 
     num_missing_patids = len(indexed_patids_with_missingness)
     i = 0
     start = time.time()
-    logger.info('ID with missingness count: ' + str(num_missing_patids))
+    logger.debug('ID with missingness count: ' + str(num_missing_patids))
     while i < num_missing_patids:
         # Build pt_history using indexer
         start = indexed_patids_with_missingness[i][1]
@@ -226,7 +226,7 @@ def fix_nulls(ldszip9: pd.DataFrame, missing_ids: list, proj_start_date, proj_en
         pt_history = ldszip9[start:end]
 
         for index, row in pt_history.iterrows():
-            logger.info('patid: ' + row['PATID'] + ', zip: ' + row['ADDRESS_ZIP9'] + ', start: ' + str(row['ADDRESS_PERIOD_START']) + ', end: ' + str(row['ADDRESS_PERIOD_END']))
+            logger.debug('patid: ' + row['PATID'] + ', zip: ' + row['ADDRESS_ZIP9'] + ', start: ' + str(row['ADDRESS_PERIOD_START']) + ', end: ' + str(row['ADDRESS_PERIOD_END']))
             start_date = row['ADDRESS_PERIOD_START']
             end_date = row['ADDRESS_PERIOD_END']
 
@@ -296,7 +296,7 @@ def fix_gaps_overlaps_dupes(ldsz9_no_nulls: pd.DataFrame):
         if len(pt_history) > 1:
             i = 1
             while i < len(pt_history):
-                logger.info('patid: ' + pt_history[i-1,0] + ', zip: ' + str(pt_history[i-1,1]) + ' and ' + str(pt_history[i,1]) + ', start: ' + str(pt_history[i-1,2]) + ' and ' + str(pt_history[i,2]) + ', end: ' + str(pt_history[i-1,3]) + ' and ' + str(pt_history[i,3]))
+                logger.debug('patid: ' + pt_history[i-1,0] + ', zip: ' + str(pt_history[i-1,1]) + ' and ' + str(pt_history[i,1]) + ', start: ' + str(pt_history[i-1,2]) + ' and ' + str(pt_history[i,2]) + ', end: ' + str(pt_history[i-1,3]) + ' and ' + str(pt_history[i,3]))
                 start1, start2 = np.datetime64(pt_history[i-1, 2]), np.datetime64(pt_history[i, 2])
                 end1, end2 = np.datetime64(pt_history[i-1, 3]), np.datetime64(pt_history[i, 3])
                 zip1, zip2 = pt_history[i-1, 1], pt_history[i, 1]
@@ -349,7 +349,7 @@ def limit_timeframe(ldsz9_continuous: pd.DataFrame, proj_start_date, proj_end_da
             A dataframe with a cleaned address history limited to the study
             period.
     """
-    print('Timeframe expansion: ' + str(expand_patient_timeframe))
+    #print('Timeframe expansion: ' + str(expand_patient_timeframe))
     ldsz9_continuous = ldsz9_continuous.sort_values(by=['ADDRESS_PERIOD_START'])
 
     indices_to_drop = []
