@@ -39,9 +39,6 @@ import time
 import numpy as np
 import pandas as pd
 from docopt import docopt
-import yaml
-
-#from ProjectInfo import ProjectInfo
 
 logger = logging.getLogger(__name__)
 
@@ -67,37 +64,6 @@ def parse_date(date_string):
         raise ValueError('Malformed date. Check start and end date.')
 
     return formatted_date
-
-
-def fill_from_config(config_path):
-    try:
-        with open(config_path, 'r') as config_file:
-            config = yaml.safe_load(config_file.read())
-    except FileNotFoundError:
-        raise FileNotFoundError('Config file not found.')
-
-    project = ProjectInfo()
-    project.project_name = config.get('project_name')
-    project.start_date = parse_date(config.get('start_date'))
-    project.end_date = parse_date(config.get('end_date'))
-    project.zip_code_file = config.get('zip_code_file')
-    project.address_file = config.get('address_file')
-    project.output_path = config.get('output_path')
-
-    return project
-
-
-def fill_from_args(args):
-    project = ProjectInfo()
-    project.project_name = args['-n']
-    project.start_date = parse_date(args['-s'])
-    project.end_date = parse_date(args['-e'])
-    project.zip_code_file = args['-z']
-    project.address_file = args['-a']
-    project.output_path = args['-o']
-
-    return project
-
 
 def indexer(data: pd.DataFrame):
     """Return lookup list for index of rows by patient id.
