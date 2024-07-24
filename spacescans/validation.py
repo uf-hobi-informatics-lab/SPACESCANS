@@ -44,26 +44,50 @@ class DateProcessor:
     def __init__(self, file_path):
         self.file_path = file_path
         self.df = self._read_csv()
+        self.date_columns = self._identify_date_columns()
 
     def _read_csv(self):
         # Step 1: Read the CSV file
         return pd.read_csv(self.file_path)
 
     def _parse_date(self, date_str):
+        formats = [
+            '%Y-%m-%d',
+            '%d-%m-%Y',
+            '%m-%d-%Y',
+            '%d/%m/%Y',
+            '%m/%d/%Y',
+            '%Y/%m/%d'
+        ]
+        for fmt in formats:
+            try:
+                return datetime.strptime(date_str, fmt)
+            except (ValueError, TypeError):
+                continue
         try:
             return parser.parse(date_str)
-        except ValueError:
+        except (ValueError, TypeError):
             return None
+
+    def _identify_date_columns(self):
+        date_columns = []
+        for column in self.df.columns:
+            if self.df[column].apply(lambda x: self._parse_date(str(x)) is not None).any():
+                date_columns.append(column)
+        return date_columns
 
     def parse_dates(self):
         # Step 2: Determine the date format
-        self.df['date1'] = self.df['date1'].apply(self._parse_date)
-        self.df['date2'] = self.df['date2'].apply(self._parse_date)
+        for column in self.date_columns:
+            self.df[column] = self.df[column].apply(lambda x: self._parse_date(str(x)))
         return self.df
-    
 
-
-
+    def get_date_formats(self):
+        date_formats = {}
+        for column in self.date_columns:
+            formats = self.df[column].dropna().apply(lambda x: x.strftime('%m/%d/%Y')).unique().tolist()
+            date_formats[column] = formats
+        return date_formats
 ########################################################################################################################
 
 
