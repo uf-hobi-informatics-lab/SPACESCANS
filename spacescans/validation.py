@@ -50,33 +50,40 @@ class DateProcessor:
         self.date_columns = self._identify_date_columns()
 
     def _read_csv(self):
-        return pd.read_csv(self.file_path)
+        # Load all columns as strings to prevent any automatic type conversion
+        return pd.read_csv(self.file_path, dtype=str)
 
     def _parse_date(self, date_str):
         if pd.isnull(date_str) or date_str == '':
             return None
 
         try:
-            parsed_date = parser.parse(date_str, dayfirst=False, fuzzy_with_tokens=False)
+            parsed_date = parser.parse(date_str, dayfirst=False, fuzzy=False)
             # Ensure the date is in the format mm/dd/yyyy
             return parsed_date
         except (ValueError, TypeError):
             raise AmbiguousDateFormatError(f"Ambiguous or invalid date format for date string: {date_str}")
 
-    def _identify_date_columns(self):
-        date_columns = []
-        for column in self.df.columns:
-            if self.df[column].apply(lambda x: self._is_date(x)).any():
-                date_columns.append(column)
-        print(f"Identified date columns: {date_columns}")
-        return date_columns
-
     def _is_date(self, string):
         try:
+            # Exclude clearly non-date numeric strings, like long numbers or ZIP codes
+            if string.isdigit() and len(string) >= 5:
+                return False
             self._parse_date(string)
             return True
         except AmbiguousDateFormatError:
             return False
+
+    def _identify_date_columns(self):
+        date_columns = []
+        for column in self.df.columns:
+            # Only consider non-numeric columns for date parsing
+            if not pd.api.types.is_numeric_dtype(self.df[column]):
+                sample_values = self.df[column].dropna().astype(str).head(10)
+                if sample_values.apply(lambda x: self._is_date(x)).any():
+                    date_columns.append(column)
+        print(f"Identified date columns: {date_columns}")
+        return date_columns
 
     def parse_dates(self):
         for column in self.date_columns:
@@ -97,6 +104,8 @@ class DateProcessor:
         # Save the modified DataFrame back to the original CSV file
         self.df.to_csv(self.file_path, index=False)
         print(f"Updated CSV file saved as {self.file_path}")
+
+
 ########################################################################################################################
 
 
