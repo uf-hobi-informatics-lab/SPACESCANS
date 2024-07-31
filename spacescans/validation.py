@@ -55,33 +55,36 @@ class DateProcessor:
 
     def _parse_date(self, date_str):
         if pd.isnull(date_str) or date_str == '':
-            return None
+            return None  # Gracefully handle null or empty date strings
 
         try:
             parsed_date = parser.parse(date_str, dayfirst=False, fuzzy=False)
-            # Ensure the date is in the format mm/dd/yyyy
             return parsed_date
         except (ValueError, TypeError):
-            raise AmbiguousDateFormatError(f"Ambiguous or invalid date format for date string: {date_str}")
+            return None  # Return None for invalid date formats
 
     def _is_date(self, string):
-        try:
-            # Exclude clearly non-date numeric strings, like long numbers or ZIP codes
-            if string.isdigit() and len(string) >= 5:
-                return False
-            self._parse_date(string)
-            return True
-        except AmbiguousDateFormatError:
+        # Exclude pure numbers with specific length checks
+        if string.isdigit() and len(string) in [5, 9]:  # Common lengths for zip codes or numeric IDs
             return False
+        if not any(char.isdigit() for char in string):  # Exclude strings without any digits
+            return False
+
+        try:
+            parsed_date = self._parse_date(string)
+            if parsed_date is not None:
+                return True
+        except AmbiguousDateFormatError:
+            pass
+        return False
 
     def _identify_date_columns(self):
         date_columns = []
         for column in self.df.columns:
-            # Only consider non-numeric columns for date parsing
-            if not pd.api.types.is_numeric_dtype(self.df[column]):
-                sample_values = self.df[column].dropna().astype(str).head(10)
-                if sample_values.apply(lambda x: self._is_date(x)).any():
-                    date_columns.append(column)
+            # Check if the column should be considered a date column
+            sample_values = self.df[column].dropna().astype(str).head(10)
+            if sample_values.apply(self._is_date).any():
+                date_columns.append(column)
         print(f"Identified date columns: {date_columns}")
         return date_columns
 
@@ -96,7 +99,9 @@ class DateProcessor:
                     else:
                         self.df.at[idx, column] = None
                 except AmbiguousDateFormatError as e:
-                    print(e)
+                    # Handle exceptions, ensuring they are relevant
+                    if not pd.isnull(date_str) and date_str != '':
+                        print(e)
                     self.df.at[idx, column] = None  # Set to None if ambiguous
         return self.df
 
@@ -104,7 +109,6 @@ class DateProcessor:
         # Save the modified DataFrame back to the original CSV file
         self.df.to_csv(self.file_path, index=False)
         print(f"Updated CSV file saved as {self.file_path}")
-
 
 ########################################################################################################################
 
