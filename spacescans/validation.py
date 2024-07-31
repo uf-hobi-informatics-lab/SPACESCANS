@@ -40,6 +40,9 @@ def validate_file_extension(file_path: str) -> bool:
 
 still in progress .... """
 
+class AmbiguousDateFormatError(Exception):
+    pass
+
 class DateProcessor:
     def __init__(self, file_path):
         self.file_path = file_path
@@ -47,47 +50,53 @@ class DateProcessor:
         self.date_columns = self._identify_date_columns()
 
     def _read_csv(self):
-        # Step 1: Read the CSV file
         return pd.read_csv(self.file_path)
 
     def _parse_date(self, date_str):
-        formats = [
-            '%Y-%m-%d',
-            '%d-%m-%Y',
-            '%m-%d-%Y',
-            '%d/%m/%Y',
-            '%m/%d/%Y',
-            '%Y/%m/%d'
-        ]
-        for fmt in formats:
-            try:
-                return datetime.strptime(date_str, fmt)
-            except (ValueError, TypeError):
-                continue
-        try:
-            return parser.parse(date_str)
-        except (ValueError, TypeError):
+        if pd.isnull(date_str) or date_str == '':
             return None
+
+        try:
+            parsed_date = parser.parse(date_str, dayfirst=False, fuzzy_with_tokens=False)
+            # Ensure the date is in the format mm/dd/yyyy
+            return parsed_date
+        except (ValueError, TypeError):
+            raise AmbiguousDateFormatError(f"Ambiguous or invalid date format for date string: {date_str}")
 
     def _identify_date_columns(self):
         date_columns = []
         for column in self.df.columns:
-            if self.df[column].apply(lambda x: self._parse_date(str(x)) is not None).any():
+            if self.df[column].apply(lambda x: self._is_date(x)).any():
                 date_columns.append(column)
+        print(f"Identified date columns: {date_columns}")
         return date_columns
 
+    def _is_date(self, string):
+        try:
+            self._parse_date(string)
+            return True
+        except AmbiguousDateFormatError:
+            return False
+
     def parse_dates(self):
-        # Step 2: Determine the date format
         for column in self.date_columns:
-            self.df[column] = self.df[column].apply(lambda x: self._parse_date(str(x)))
+            for idx, date_str in self.df[column].items():
+                try:
+                    parsed_date = self._parse_date(str(date_str))
+                    if parsed_date:
+                        # Save the date in the desired format mm/dd/yyyy
+                        self.df.at[idx, column] = parsed_date.strftime('%m/%d/%Y')
+                    else:
+                        self.df.at[idx, column] = None
+                except AmbiguousDateFormatError as e:
+                    print(e)
+                    self.df.at[idx, column] = None  # Set to None if ambiguous
         return self.df
 
-    def get_date_formats(self):
-        date_formats = {}
-        for column in self.date_columns:
-            formats = self.df[column].dropna().apply(lambda x: x.strftime('%m/%d/%Y')).unique().tolist()
-            date_formats[column] = formats
-        return date_formats
+    def save_to_csv(self):
+        # Save the modified DataFrame back to the original CSV file
+        self.df.to_csv(self.file_path, index=False)
+        print(f"Updated CSV file saved as {self.file_path}")
 ########################################################################################################################
 
 
