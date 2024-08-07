@@ -17,6 +17,7 @@ import pandas as pd
 
 class File_Validator(BaseModel):
     file_path: str
+    #zip_code: str
 
     @field_validator('file_path')
     def must_be_csv(cls, value):
@@ -24,6 +25,12 @@ class File_Validator(BaseModel):
         if path.suffix != '.csv':
             raise ValueError('File must be a .csv')
         return value
+    
+    """@field_validator('zip_code')
+    def validate_zip(cls, value):
+        if value not in {'5-digit', '9-digit'}:
+            raise ValueError("ZIP code type must be '5-digit' or '9-digit'")
+        return value"""
 
 
 def validate_file_extension(file_path: str) -> bool:
@@ -34,6 +41,13 @@ def validate_file_extension(file_path: str) -> bool:
         print("Validation error:", e)
         return False
 
+"""def validate_zip_code(zip_code: str) -> bool:
+    try:
+        File_Validator(zip_code=zip_code)
+        return True
+    except ValidationError as e:
+        print("Validation error: ", e)
+        return False"""
 ########################################################################################################################
 
 """date validation classes
@@ -55,28 +69,25 @@ class DateProcessor:
 
     def _parse_date(self, date_str):
         if pd.isnull(date_str) or date_str == '':
-            return None  # Gracefully handle null or empty date strings
+            return None  # Handle null or empty date strings gracefully
 
         try:
             parsed_date = parser.parse(date_str, dayfirst=False, fuzzy=False)
             return parsed_date
         except (ValueError, TypeError):
-            return None  # Return None for invalid date formats
+            raise AmbiguousDateFormatError(f"Ambiguous or invalid date format: {date_str}")
 
-    def _is_date(self, string):
-        # Exclude pure numbers with specific length checks
-        if string.isdigit() and len(string) in [5, 9]:  # Common lengths for zip codes or numeric IDs
+    def _is_date(self, value):
+        if pd.isnull(value) or value == '':
             return False
-        if not any(char.isdigit() for char in string):  # Exclude strings without any digits
+        # Exclude values that are purely numeric and have lengths typical of zip codes (5 or 9 digits)
+        if value.isdigit() and len(value) in [5, 9]:
             return False
-
         try:
-            parsed_date = self._parse_date(string)
-            if parsed_date is not None:
-                return True
+            self._parse_date(value)
+            return True
         except AmbiguousDateFormatError:
-            pass
-        return False
+            return False
 
     def _identify_date_columns(self):
         date_columns = []
@@ -90,25 +101,17 @@ class DateProcessor:
 
     def parse_dates(self):
         for column in self.date_columns:
-            for idx, date_str in self.df[column].items():
-                try:
-                    parsed_date = self._parse_date(str(date_str))
-                    if parsed_date:
-                        # Save the date in the desired format mm/dd/yyyy
-                        self.df.at[idx, column] = parsed_date.strftime('%m/%d/%Y')
-                    else:
-                        self.df.at[idx, column] = None
-                except AmbiguousDateFormatError as e:
-                    # Handle exceptions, ensuring they are relevant
-                    if not pd.isnull(date_str) and date_str != '':
-                        print(e)
-                    self.df.at[idx, column] = None  # Set to None if ambiguous
+            self.df[column] = self.df[column].apply(self._format_date)
         return self.df
 
-    def save_to_csv(self):
-        # Save the modified DataFrame back to the original CSV file
-        self.df.to_csv(self.file_path, index=False)
-        print(f"Updated CSV file saved as {self.file_path}")
+    def _format_date(self, date_str):
+        try:
+            parsed_date = self._parse_date(date_str)
+            if parsed_date:
+                return parsed_date.strftime('%m/%d/%Y')
+        except AmbiguousDateFormatError:
+            pass
+        return None
 
 ########################################################################################################################
 
