@@ -13,7 +13,9 @@ import pandas as pd
 
 ########################################################################################################################
 
-"""file validation class"""
+"""file validation class:  IN PROGRESS 
+
+"""
 
 class File_Validator(BaseModel):
     file_path: str
@@ -50,9 +52,7 @@ def validate_file_extension(file_path: str) -> bool:
         return False"""
 ########################################################################################################################
 
-"""date validation classes
-
-still in progress .... """
+"""date validation classes: NEEDS REVIEW """
 
 class AmbiguousDateFormatError(Exception):
     pass
