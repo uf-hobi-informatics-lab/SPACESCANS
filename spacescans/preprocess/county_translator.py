@@ -1,18 +1,20 @@
-# Convert ucr into by zip9 and per year
-## original data structure is by county and year
-
+'''
+    To: Convert ucr into by zip9 and per year
+    Notes: Original data structure is by county and year
+'''
 import pandas as pd
+import os
 
 def read_formatted_exposome():
-    return pd.read_csv(exposome_path + 'formatted_ucr.csv')
+    return pd.read_csv(exposome_path)
 
 def read_buffer():
     buffer_path = '/home/cwang6/exposome/data/original_data/'
     return pd.read_csv(data_path + 'buffer250tocounty_all.csv')
 
 def county_tanslator(formatted_exposome, buffer):
-    formatted_exposome.rename(columns={'fips': 'GEOID10'}, inplace=True)
-    buffer.rename(columns={'fips': 'GEOID10'}, inplace=True)
+    formatted_exposome.rename(columns={'FIPS': 'GEOID10'}, inplace=True)
+    buffer.rename(columns={'FIPS': 'GEOID10'}, inplace=True)
     buffer = buffer[['zip9', 'GEOID10', 'value']]
     
     df = pd.merge(buffer, formatted_exposome, on='GEOID10', how='left')
@@ -39,11 +41,10 @@ def county_tanslator(formatted_exposome, buffer):
     return df_result
 
 def save_preprocess_ucr(exposome):
-    exposome.to_csv(output_path + 'preprocess_ucr.csv', index=False)
+    exposome.to_csv('preprocess_ucr.csv', index=False)
 
 def main():
-    exposome_path = '/home/cwang6/exposome/data/original_data/'
-    output_path = '/home/cwang6/exposome/data/output_data/temp/'
+    # exposome_path = '/home/cwang6/exposome/data/original_data/formatted_ucr.csv'
     formatted_exposome = read_formatted_exposome()
     buffer = read_buffer()
     preprocess_exposome = county_tanslator(formatted_exposome, buffer)
