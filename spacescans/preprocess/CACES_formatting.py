@@ -3,7 +3,7 @@ from itertools import product
 import pandas as pd
 
 def read_raw_exposome():
-    raw_caces = pd.read_csv("/Users/looseymoose/Dropbox (UFL)/Exposome_Data_Linkage_Tool/exposome_files/raw_exposomes/uwc17066350009005fb15292c3f979ab109b4b4f789d70e1.csv")
+    raw_caces = pd.read_csv("/Users/allison.burns/Desktop/exposome/CACES/uwc17066350009005fb15292c3f979ab109b4b4f789d70e1.csv")
     return raw_caces
 
 def translate_exposome(raw_caces):
@@ -19,7 +19,8 @@ def translate_exposome(raw_caces):
         return y.values.tolist()[0]
 
     for pol in pol_list:
-        new_caces[pol] = new_caces.apply(lambda x: get_pols(x['fips'], x['year'], pol, raw_caces), axis=1)        
+        new_caces[pol] = new_caces.apply(lambda x: get_pols(x['fips'], x['year'], pol, raw_caces), axis=1)
+    new_caces.columns = new_caces.columns.str.upper()           
     return new_caces
 
 def save_exposome(caces):

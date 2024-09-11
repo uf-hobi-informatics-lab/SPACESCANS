@@ -12,14 +12,15 @@ def extract_year_from_filename(file_path):
 
 def standardize_column_names(df):
     # Convert all column names to lowercase and remove leading/trailing spaces
-    df.columns = df.columns.str.strip().str.lower()
+    df.columns = df.columns.str.strip().str.upper()
     return df
 
 def rename_columns(df):
     # Define the column name changes
     column_mapping = {
-        'censustract': 'fips',
-        'pop2010': 'pop',
+        'CensusTract': 'FIPS',
+        'POP2010': 'POP',
+        'Pop2010': 'POP',
     }
     
     df = df.rename(columns=column_mapping)
@@ -28,18 +29,18 @@ def rename_columns(df):
 def read_raw_exposome(file_path):
     year = extract_year_from_filename(file_path)
     new_fara = pd.read_excel(file_path, sheet_name=2, engine='openpyxl')
-    new_fara = standardize_column_names(new_fara)
     new_fara = rename_columns(new_fara)
-    new_fara['year'] = year
+    new_fara = standardize_column_names(new_fara)
+    new_fara['YEAR'] = year
     return new_fara
 
 def save_exposome(dataframe, output_path):
     dataframe.to_csv(output_path, index=False)
 
 def main():
-    file_path1 = '/Users/allison.burns/Desktop/FoodAccessResearchAtlasData2019.xlsx'
-    file_path2 = '/Users/allison.burns/Desktop/FoodAccessResearchAtlasData2015.xlsx'
-    output_path = '/Users/allison.burns/Desktop/formatted_fara.csv'
+    file_path1 = '/Users/allison.burns/Desktop/exposome/FARA/FoodAccessResearchAtlasData2019.xlsx'
+    file_path2 = '/Users/allison.burns/Desktop/exposome/FARA/FoodAccessResearchAtlasData2015.xlsx'
+    output_path = '/Users/allison.burns/Desktop/exposome/FARA/formatted_fara.csv'
 
 
     # Read and process the first file
@@ -55,9 +56,10 @@ def main():
 
     # Append the data from the second file to the first file
     combined_fara = pd.concat([new_fara1, new_fara2], ignore_index=True)
+    print(combined_fara.columns.values)
 
     # Define the desired order of the columns
-    desired_order = ['state', 'county', 'fips', 'pop', 'year']  # Add other columns as needed
+    desired_order = ['FIPS', 'POP', 'YEAR', 'STATE', 'COUNTY']  # Add other columns as needed
 
     # Add remaining columns to the desired order
     remaining_columns = [col for col in combined_fara.columns if col not in desired_order]

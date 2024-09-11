@@ -7,7 +7,6 @@ import glob
 
 def extract_year_quarter(filename):
     # Assuming the filename is in the format: usps_vac_032023_tractsum_2kx.dbf 
-    # In order for this to work, all the HUD files must be exactly in the above format
     parts = filename.split('_')[-3]  # Get the 'mmYYYY.dbf' part
     month = int(parts[:2])  # Extract month (mm)
     year = int(parts[2:6])  # Extract year (YYYY)
@@ -26,26 +25,26 @@ def dbfs_to_csv_with_date(dbf_folder_path, csv_file_path):
 
         for dbf_file in dbf_files:
             year, quarter = extract_year_quarter(dbf_file)
-            table = DBF(dbf_file, ignore_missing_memofile=True)
+            table = DBF(dbf_file, ignore_missing_memofile=True, lowernames=False)
 
             # Write the header from the first file and append 'Year', 'Quarter'
             if not headers_written:
-                writer.writerow(table.field_names + ['Year', 'Quarter'])
+                # Capitalize ALL field names and append 'YEAR', 'QUARTER'
+                
+                field_names = [field.upper() for field in table.field_names]
+                writer.writerow(['YEAR', 'QUARTER'] + field_names )
                 headers_written = True
 
             # Write each record with the added year and quarter
             for record in table:
-                row = list(record.values()) + [year, quarter]
+                row = [year, quarter] + list(record.values())  
                 writer.writerow(row)
-
-
 
 def main():
     dbf_folder_path = '/Users/allison.burns/Desktop/HUD/DB_Files'
-    csv_file_path = '/Users/allison.burns/Desktop/HUD/OUTPUT/test_HUD.csv'
+    csv_file_path = '/Users/allison.burns/Desktop/HUD/OUTPUT/FORMATTED_HUD.csv'
 
-    converted_data = dbfs_to_csv_with_date(dbf_folder_path, csv_file_path)
-    
+    dbfs_to_csv_with_date(dbf_folder_path, csv_file_path)
 
 if __name__ == '__main__':
     main()
