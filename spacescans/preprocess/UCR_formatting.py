@@ -42,11 +42,11 @@ def read_exposome_from_all_sheets(file_path):
         df = rename_and_combine_columns(df)
 
         # Add the year column after the county column
-        df.insert(df.columns.get_loc('county') + 1, 'year', year)
+        df.insert(df.columns.get_loc('county') + 1, 'YEAR', year)
         
         # Select only the necessary columns (this is based on the currently formatted ucr exposome file)
         cols_to_keep = [
-            'county', 'year', 'pop', 'murder', 'fso', 'robbery', 'assault', 
+            'county', 'YEAR', 'pop', 'murder', 'fso', 'robbery', 'assault', 
             'burglary', 'larceny', 'mvt'
         ]
 
@@ -187,14 +187,14 @@ def fips_mapping_dictionary(df):
     df['county'] = df['county'].str.lower().str.strip()
     
     # Map counties to FIPS codes
-    df['fips'] = df['county'].map(county_to_fips)
+    df['FIPS'] = df['county'].map(county_to_fips)
 
    # Drop the 'county' column
     df = df.drop(['county'], axis=1)
 
     # Move the 'fips' column to the beginning
-    fips_column = df.pop('fips')
-    df.insert(0, 'fips', fips_column)
+    fips_column = df.pop('FIPS')
+    df.insert(0, 'FIPS', fips_column)
     
     return df
 
@@ -204,8 +204,8 @@ def save_combined_exposome(dataframe, output_path):
     dataframe.to_csv(output_path, index=False)
 
 def main():
-    file_path = '~/Total_Index_Crime_by_County.xlsx'
-    output_path = '~/formatted_ucr.csv'
+    file_path = '/Users/allison.burns/Desktop/exposome/UCR/Total_Index_Crime_by_County.xlsx'
+    output_path = '/Users/allison.burns/Desktop/exposome/UCR/formatted_ucr.csv'
 
     combined_data = read_exposome_from_all_sheets(file_path)
     combined_data = add_total_column(combined_data)
