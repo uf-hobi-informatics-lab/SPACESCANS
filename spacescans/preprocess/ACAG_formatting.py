@@ -10,7 +10,7 @@ VARIABLES_LIST = ['BC', 'NH4', 'NIT', 'OM', 'SO4', 'SOIL', 'SS']
 def extract_file_info(file_name):
     """Extracts variable, year, and month from the file name based on a predefined list."""
     try:
-        # Detect and remove 'HEI_' if it exists in the filename
+        # Detect and remove '.HEI_' if it exists in the filename. This is the case for year 2017 and up
         file_name = file_name.replace('.HEI', '')
         # Example file name: GWRwSPEC_BC_NA_201104_201104.nc
         parts = file_name.split('_')
@@ -37,7 +37,7 @@ def extract_file_info(file_name):
         print(f"Error processing file name {file_name}: {e}")
         return None, None, None  # Return None values if there's an error
 
-def process_nc_file(file_path, variable, year, month, limit=1000):
+def process_nc_file(file_path, variable, year, month,): # for testing, add limit=1000 as last arg to only test 1000 rows per file
     """Reads a NetCDF file and extracts LAT, LON, and the specified variable."""
     dataset = nc.Dataset(file_path)
 
@@ -56,10 +56,10 @@ def process_nc_file(file_path, variable, year, month, limit=1000):
     lat_flat = lat_grid.flatten()
 
     # Limit the number of rows to process for testing purposes
-    if len(lon_flat) > limit:
+    """if len(lon_flat) > limit:
         lon_flat = lon_flat[:limit]
         lat_flat = lat_flat[:limit]
-        var_data = var_data[:limit]
+        var_data = var_data[:limit]"""
 
     # Create a pandas DataFrame where each row corresponds to a (LAT, LON, Variable) triplet
     df = pd.DataFrame({
@@ -87,7 +87,7 @@ def merge_with_existing(combined_df, new_df, variable):
         
         return combined_df
 
-def process_multiple_files(directory, output_csv, limit=1000):
+def process_multiple_files(directory, output_csv): # for testing, add limit=1000 as last arg to only test 1000 rows per file
     """Processes multiple NetCDF files in a directory and appends results to a CSV with columns for each variable."""
     combined_df = None  # Initialize as None to handle the first merge properly
 
@@ -120,13 +120,13 @@ def process_multiple_files(directory, output_csv, limit=1000):
     print(f"All data has been successfully exported to {output_csv}")
 
 
-# Example usage:
+# File path for input and output files
 directory = '/Users/allison.burns/Desktop/exposome/ACAG/TEST_DATA' 
 output_csv = '/Users/allison.burns/Desktop/exposome/ACAG/FINAL/final_acag_output.csv'
 
 def main(): 
     print('processing ... ')
-    process_multiple_files(directory, output_csv, limit=1000)
+    process_multiple_files(directory, output_csv) # for testing, add limit=1000 as last arg to only test 1000 rows per file
     
 
 if __name__== '__main__':
