@@ -10,8 +10,8 @@ VARIABLES_LIST = ['BC', 'NH4', 'NIT', 'OM', 'SO4', 'SOIL', 'SS']
 def extract_file_info(file_name):
     """Extracts variable, year, and month from the file name based on a predefined list."""
     try:
-        # Detect and remove 'HEI_' if it exists in the filename
-        file_name = file_name.replace('HEI', '')
+        # Detect and remove '.HEI_' if it exists in the filename. This is the case for year 2017 and up
+        file_name = file_name.replace('.HEI', '')
         # Example file name: GWRwSPEC_BC_NA_201104_201104.nc
         parts = file_name.split('_')
 
@@ -37,7 +37,7 @@ def extract_file_info(file_name):
         print(f"Error processing file name {file_name}: {e}")
         return None, None, None  # Return None values if there's an error
 
-def process_nc_file(file_path, variable, year, month):
+def process_nc_file(file_path, variable, year, month,): # for testing, add limit=1000 as last arg to only test 1000 rows per file
     """Reads a NetCDF file and extracts LAT, LON, and the specified variable."""
     dataset = nc.Dataset(file_path)
 
@@ -87,7 +87,7 @@ def merge_with_existing(combined_df, new_df, variable):
         
         return combined_df
 
-def process_multiple_files(directory, output_csv):
+def process_multiple_files(directory, output_csv): # for testing, add limit=1000 as last arg to only test 1000 rows per file
     """Processes multiple NetCDF files in a directory and appends results to a CSV with columns for each variable."""
     combined_df = None  # Initialize as None to handle the first merge properly
 
@@ -95,10 +95,12 @@ def process_multiple_files(directory, output_csv):
     file_paths = glob.glob(os.path.join(directory, '*.nc'))
 
     # Loop through each file and process it
+    file_count = 0
     for file_path in file_paths:
         file_name = os.path.basename(file_path)  # Get the filename
         variable, year, month = extract_file_info(file_name)  # Extract variable, year, month from the filename
-        
+        file_count += 1  # Increment the counter
+        print(f"Process File {file_count}: {file_path}")
         if variable is None or year is None or month is None:
             print(f"Skipping file due to missing information: {file_name}")
             continue  # Skip files with missing information
@@ -118,10 +120,16 @@ def process_multiple_files(directory, output_csv):
     print(f"All data has been successfully exported to {output_csv}")
 
 
-# Example usage:
-directory = '/Users/allison.burns/Desktop/exposome/ACAG/COMBINED_RAW_DATA' 
-output_csv = '/Users/allison.burns/Desktop/exposome/ACAG/final_acag_output8.csv'
+# File path for input and output files
+directory = '/Users/allison.burns/Desktop/exposome/ACAG/TEST_DATA' 
+output_csv = '/Users/allison.burns/Desktop/exposome/ACAG/FINAL/final_acag_output.csv'
 
-process_multiple_files(directory, output_csv)
+def main(): 
+    print('processing ... ')
+    process_multiple_files(directory, output_csv) # for testing, add limit=1000 as last arg to only test 1000 rows per file
+    
+
+if __name__== '__main__':
+    main()
 
 
