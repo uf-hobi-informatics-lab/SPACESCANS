@@ -1,4 +1,4 @@
-from setuptools import setup
+from setuptools import setup, find_packages
 
 setup(
     name = 'spacescans',
@@ -10,11 +10,11 @@ setup(
     maintainer='Jason Glover',
     maintainer_email='jasonglover@ufl.edu',
     license = 'MIT',
-    long_description=open('README.md').read(),  
-    long_description_content_type='text/markdown',  
+    #long_description=open('README.md').read(),  
+    #long_description_content_type='text/markdown',  
     python_requires='>=3.8',
     readme = "README.md",
-    packages = ['spacescans'],
+    packages = find_packages(),
     install_requires = [
         'numpy',
         'pandas',
