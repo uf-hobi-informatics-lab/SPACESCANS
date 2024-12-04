@@ -1,7 +1,7 @@
 '''
 
     Script to handle data validation
-    INCLUDING: file validation, date parsing, zip code validation
+    INCLUDING: file validation, date parsing, zip code validation, DataFrame Headers Validation
 
 '''
 
@@ -200,7 +200,36 @@ class DateProcessor:
 
 ########################################################################################################################
 
+"""
 
 
+DF HEADER VALIDATION
 
+
+"""
+
+
+def validate_df_headers(file_path):
+    
+    valid_headers = ['PATID', 'GEOID', 'START_DATE', 'END_DATE']
+    
+    df = pd.read_csv(file_path)
+    headers = df.columns.to_list()
+    #print(headers)
+
+    try:
+        validate = all(e in headers for e in valid_headers)
+        if validate:
+            print('All headers are valid')
+        else:
+            missing_headers = [e for e in valid_headers if e not in headers]
+            raise ValueError(f'Missing required headers: {missing_headers}')
+    except ValueError as e:
+        # Handling the raised error
+        print(f"Error: {e}")
+
+    
+
+
+    
 
