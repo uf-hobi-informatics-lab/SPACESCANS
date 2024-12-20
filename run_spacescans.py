@@ -239,7 +239,7 @@ def run_linkage(project_name):
     result = link.process_data(start_date, end_date, selection_dict, geoid, file_path)
 
     output_name = get_output_name(project_name)
-    file_path = f"output/linked_{project_name}.csv"
+    file_path = f"output/linked_{output_name}.csv"
     result.to_csv(file_path, index=False)
     
 
