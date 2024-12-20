@@ -6,6 +6,7 @@ import pandas as pd
 from datetime import datetime
 
 from spacescans.dataclean import address_cleaning as addr
+from spacescans import csv_linkage as link
 
 #========= GLOBAL VARIABLES ===========
 logger = logging.getLogger()
@@ -20,6 +21,7 @@ valid_log_levels = {
 
 project_name = ''
 
+available_exposomes= {'UCR': ['p_total', 'p_murder', 'p_fso', 'p_rob', 'p_assault', 'p_burglary', 'p_larceny', 'p_mvt']}
 
 #=========== End Global Variables =========
 
@@ -30,6 +32,20 @@ def get_project_name(name='new_project'):
         name = 'new_project'
     
     if not os.path.exists(os.getcwd()+f'/projects/{name}.json'):
+        return f'{name}'
+    else:
+        i = 1
+        # Iterate until a project name does not exist
+        while True:
+            if not os.path.exists(os.getcwd()+f'/projects/{name}_{i}.json'):
+                return f'{name}_{i}'
+            i+=1
+
+def get_output_name(name='new_project'):
+    if name == '':
+        name = 'new_project'
+    
+    if not os.path.exists(os.getcwd()+f'/output/linked_{name}.csv'):
         return f'{name}'
     else:
         i = 1
@@ -55,6 +71,27 @@ def is_valid_project(project_name):
     except Exception as e:
         return False
     
+def get_vars():
+    print("-------------Available Exposomes-------------")
+    i = 1
+    for source, vars in available_exposomes.items():
+        print(source)
+        for var in vars:
+            print(f"{i}. {var}")
+            i += 1
+    print("---------------------------------------------")
+    selection_input = input("Which variables would you like to link against? (Please separate each selection by comma)\n")
+
+    selection = []
+
+    for i in selection_input:
+        if i!=',' and i!=' ':
+            #If i is a selection
+            selection.append(available_exposomes['UCR'][int(i)-1])
+
+    return selection
+
+
 
 #============ End Helper Functions ================
 def list_projects():
@@ -180,7 +217,31 @@ def run_address_cleaning(project_name):
     logger.info(f'Writing the output to {outpath}')
     ldsz9_in_daterange.to_csv(outpath, index=False)
 
+def run_linkage(project_name):
+    selection = get_vars()
 
+    logger.info(f'Performing linkage for {project_name} with the following variables:')
+    for var in selection:
+        print(var)
+    
+    selection_dict = {'UCR': selection}
+
+    with open(f'projects/{project_name}.json', 'r') as f:
+        project = json.load(f)
+
+    start_date  = project['start_date']
+    end_date = project['end_date']
+    geoid = project['geoid']
+    file_path = project['filepath']
+
+    #{'UCR': ['p_assault', 'p_burglary', 'p_murder', 'p_larceny']}
+
+    result = link.process_data(start_date, end_date, selection_dict, geoid, file_path)
+
+    output_name = get_output_name(project_name)
+    file_path = f"output/linked_{project_name}.csv"
+    result.to_csv(file_path, index=False)
+    
 
 def main():
 
@@ -202,8 +263,15 @@ def main():
     link_parse = subparser.add_parser('link', help='Link the chosen exposomes to the submitted dataset')
     link_parse.add_argument(
         '-g','--geoid',
-        required=True,
+        required=False,
         help='Pass the geoidentifier used in the patient dataset (9-digit zipcode, 5-digit zipcode, etc)'
+    )
+
+    link_parse.add_argument(
+        '-p','--project_name',
+        default=None,
+        required=False,
+        help='Name of the project'
     )
 
     # Parsing for listing projects
@@ -212,7 +280,7 @@ def main():
     # Parsing for creating a project
     create_proj_parser = subparser.add_parser('create_project', help='Create a new project to run linkage against')
     create_proj_parser.add_argument(
-        '-n','--project_name',
+        '-p','--project_name',
         default=None,
         required=False,
         help='Name of the project'
@@ -292,6 +360,8 @@ def main():
         list_projects()
     elif args.command=='create_project':
         build_project(args.project_name, args.start_date, args.end_date, args.geoid, args.filepath)
+    elif args.command=='link':
+        run_linkage(args.project_name)
 
 
 
