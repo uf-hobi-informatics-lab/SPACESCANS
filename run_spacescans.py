@@ -51,7 +51,7 @@ def get_output_name(name='new_project'):
         i = 1
         # Iterate until a project name does not exist
         while True:
-            if not os.path.exists(os.getcwd()+f'/projects/{name}_{i}.json'):
+            if not os.path.exists(os.getcwd()+f'/output/linked_{name}_{i}.json'):
                 return f'{name}_{i}'
             i+=1
 
