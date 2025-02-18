@@ -6,6 +6,7 @@
 """
 
 import csv
+import pandas as pd
 
 
 # Database imports
@@ -19,7 +20,7 @@ from .zip_5 import models as z5_models
 
 # Dictionary Definitions
 
-valid_geoids = ['zip_9','zip_5']
+#valid_geoids = ['zip_9','zip_5','FIPS']
 
 zip_9_tables = {
 
@@ -49,52 +50,42 @@ zip_5_tables = {
 }
 
 
-def insert_from_csv(source, target, geoid):
+# *******************************************************************************************************
+# USING THIS FUNCTION FOR TESTING ONLY  - IT WORKS WELL BUT MAY NEED CHANGES BASED ON EXPOSOME DATA FILES
+# this is the new function that I created to work only with zip_9 data and for testing only.  
+# Once we move to using zip 5, we'll need to re-work this code.    
+def insert_from_csv(source, target, session):
     """
-    
-        Function to insert a csv file into a specified table in the exposome database.
-
-        source: the path to the csv file to be uploaded. The source file headers must match the target headers exactly.
-        target: the desired table to insert into.
-        geoid: the method of geographical identification.* 
+        Function to insert a CSV file into a specified table in the exposome database.
         
-            *Currently only zip_9 is supported. But zip_5 code has been added for that data down the line.
+        source: the path to the CSV file to be uploaded. The source file headers must match the target headers exactly.
+        target: the desired table to insert into.
+    """   
 
-    """
-
-    # Value checking to ensure proper values are called from the script.
-    if geoid.lower() not in valid_geoids:
-        raise ValueError(f"{geoid} is not a valid geoidentifier.")
-    elif geoid.lower()=='zip_5':
-        session = z5_session.get_session()
-        tables = zip_5_tables
-    else:
-        session = z9_session.get_session()
-        tables = zip_9_tables
-
-    if target not in tables:
-        raise ValueError(f"{target} is not a valid table!")
-    else: 
-        target_table = tables[target]
-
-    # Set batch_size and count to reduce commits
-    batch_size = 1000
-    count = 0
-
-    with open(source, 'r') as file:
-        csv_read = csv.DictReader(file)
-        for row in csv_read:
-            new_record = target_table(**row)
-            session.add(new_record)
-            count += 1
-
-            # Only commit every 1,000 records. May need to make this larger.
-            if count % batch_size == 0:
-                session.commit()
-                session.flush()
+    # Set batch_size to reduce commits
+    tables = zip_9_tables
+    target_table = tables[target]
+    batch_size = 10000   
+ 
     
+    # Insert the DataFrame into the target table in batches
+    for start in range(0, len(source), batch_size):
+        batch = source.iloc[start:start + batch_size]
+            
+        records = batch.to_dict(orient='records')
+            
+        for record in records:
+            new_record = target_table(**record)
+            session.add(new_record)
+
+    # Commit after processing each batch
+    session.commit()
+# *******************************************************************************************************
+
+
     # Clean up commits after insert loop finishes
     session.commit()
+    print("Data fully loaded to database!")
 
 # Initialization functions to create the db files. 
 # These really shouldn't be called ever.
