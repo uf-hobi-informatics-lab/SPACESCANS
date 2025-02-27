@@ -24,7 +24,7 @@ else:
     for table in tables:
         print(table[0])
 
-
+    """
     # Execute the PRAGMA table_info query to get column headers of the UCR table
     cursor.execute("PRAGMA table_info(USDA_FARA)")
     columns_info = cursor.fetchall()
@@ -42,13 +42,13 @@ else:
     print("\nSample data from UCR table:")
     for row in rows:
         print(row)
-  # Execute the query
-    cursor.execute("SELECT COUNT(*) FROM UCR")
+    """
 
-    # Fetch the result
-    count = cursor.fetchone()[0]
-
-    # Print the count
-    print("This is the total count of data in the database: ", count)
+    # Display count for every table in DB
+    print("================== DB COUNTS ==================")
+    for table in tables:
+        cursor.execute(f"SELECT COUNT(*) FROM {table[0]}")
+        count = cursor.fetchone()[0]
+        print(f"{table[0]}: ", count)
     
     conn.close()
