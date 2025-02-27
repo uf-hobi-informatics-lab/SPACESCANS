@@ -38,14 +38,14 @@ class acag(exposome_base):
 
 class caces(exposome_base):
     __tablename__='CACES'
-    ZIP_9: Mapped[str] = mapped_column(String(9), primary_key=True)
-    YEAR: Mapped[str] = mapped_column(String(4), primary_key=True)
-    O3: Mapped[Float] = mapped_column(Float)
-    CO: Mapped[Float] = mapped_column(Float)
-    S02: Mapped[Float] = mapped_column(Float)
-    NO2: Mapped[Float] = mapped_column(Float)
-    PM10: Mapped[Float] = mapped_column(Float)
-    PM25: Mapped[Float] = mapped_column(Float)
+    zip9: Mapped[str] = mapped_column(String(9), primary_key=True)
+    year: Mapped[str] = mapped_column(String(4), primary_key=True)
+    o3: Mapped[Float] = mapped_column(Float)
+    co: Mapped[Float] = mapped_column(Float)
+    so2: Mapped[Float] = mapped_column(Float)
+    no2: Mapped[Float] = mapped_column(Float)
+    pm10: Mapped[Float] = mapped_column(Float)
+    pm25: Mapped[Float] = mapped_column(Float)
 
 
 class epa_nata(exposome_base):
@@ -232,7 +232,8 @@ class epa_nata(exposome_base):
 class us_hud(exposome_base):
     __tablename__='US_HUD'
     ZIP_9: Mapped[str] = mapped_column(String(9), primary_key=True)
-    TIME_QUARTER: Mapped[str] = mapped_column(String(6), primary_key=True)
+    YEAR: Mapped[str] = mapped_column(String(4), primary_key=True)
+    QUARTER: Mapped[str] = mapped_column(String(6), primary_key=True)
     VAC: Mapped[Float] = mapped_column(Float)
     AVG_VAC: Mapped[Float] = mapped_column(Float)
     VAC_3: Mapped[Float] = mapped_column(Float)
