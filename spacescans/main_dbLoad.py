@@ -254,36 +254,6 @@ elif target == 'national_walkability_index':
     # Ensure essential columns don't have NaN values
     source = source.dropna(subset=["ZIP_9", "YEAR"])
 
-elif target == 'cbp':
-    source = pd.read_csv(source)
-    drop_table(cbp)
-    print("Dropped CBP/ZBP table.")
-    create_table(cbp)
-    print("Created CBP/ZBP table.")
-
-    columns_to_read = ["ZIP_9", "YEAR", "religious", "civic", "business", "political", "professional", "labor", "bowling", "recreational", "golf", "sports"]
-    available_columns = [col for col in columns_to_read if col in source.columns]
-
-    # Identify missing columns and add them with default float 0.0
-    missing_columns = set(columns_to_read) - set(available_columns)
-    if missing_columns:
-        print(f"Warning: The following columns were not found in the DataFrame and will be added with default 0.0: {missing_columns}")
-        for col in missing_columns:
-            source[col] = 0.0
-        # Update available_columns list now that missing columns have been added
-        available_columns = columns_to_read
-
-    # Select and order columns as specified in columns_to_read
-    source = source[available_columns]
-
-    # Convert specific columns to float, ensuring missing values are replaced with 0.0
-    columns_to_convert = ["religious", "civic", "business", "political", "professional", "labor", "bowling", "recreational", "golf", "sports"]
-    for column in columns_to_convert:
-        if column in source.columns:
-            source[column] = source[column].fillna(0).astype(float)
-            
-    # Ensure essential columns don't have NaN values
-    source = source.dropna(subset=["ZIP_9", "YEAR"])
 
     
 
