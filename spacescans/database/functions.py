@@ -26,7 +26,7 @@ zip_9_tables = {
 
     'test':z9_models.TEST,
     'acag': z9_models.acag,
-    'cases': z9_models.caces,
+    'caces': z9_models.caces,
     'epa_nata':z9_models.epa_nata,
     'us_hud': z9_models.us_hud,
     'national_walkability_index': z9_models.national_walkability_index,
@@ -39,7 +39,7 @@ zip_9_tables = {
 zip_5_tables = {
 
     'acag': z5_models.acag,
-    'cases': z5_models.caces,
+    'caces': z5_models.caces,
     'epa_nata':z5_models.epa_nata,
     'us_hud': z5_models.us_hud,
     'national_walkability_index': z5_models.national_walkability_index,
@@ -56,30 +56,32 @@ zip_5_tables = {
 # Once we move to using zip 5, we'll need to re-work this code.    
 def insert_from_csv(source, target, session):
     """
-        Function to insert a CSV file into a specified table in the exposome database.
-        
-        source: the path to the CSV file to be uploaded. The source file headers must match the target headers exactly.
-        target: the desired table to insert into.
+    Function to insert a CSV file into a specified table in the exposome database.
+    
+    source: the path to the CSV file to be uploaded. The source file headers must match the target headers exactly.
+    target: the desired table to insert into.
     """   
 
     # Set batch_size to reduce commits
     tables = zip_9_tables
     target_table = tables[target]
     batch_size = 10000   
- 
     
+    total_records = 0  # running total counter
+
     # Insert the DataFrame into the target table in batches
     for start in range(0, len(source), batch_size):
         batch = source.iloc[start:start + batch_size]
-            
         records = batch.to_dict(orient='records')
             
         for record in records:
             new_record = target_table(**record)
             session.add(new_record)
+        
+        total_records += len(batch)
+        print(f"Loaded {total_records} records\n")
+        session.commit()
 
-    # Commit after processing each batch
-    session.commit()
 # *******************************************************************************************************
 
 
