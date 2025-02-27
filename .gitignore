@@ -7,4 +7,5 @@ projects/*
 *.log
 spacescans/main.py
 spacescans/validation2.py
+output/
 
