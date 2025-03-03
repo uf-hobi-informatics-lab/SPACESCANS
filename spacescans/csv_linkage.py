@@ -27,7 +27,7 @@ SELECT_VAR = ['pop', 'murder', 'robbery']  # ucr: ['zip9', 'year', 'pop', 'murde
 SAMPLE_SIZE = 1000
 
 # Change the file path - remove the hardcoded values
-EXPOSOME_PATH = '/app/app/spacescans/expo_data/'
+EXPOSOME_PATH = '~/Documents/data/exposomes/'
 DATA_PATH = ''
 OUTPUT_PATH = '/app/output/'
 FIX_VAR = ['zip9', 'year']  # Default
@@ -142,7 +142,7 @@ def process_data(target_start, target_end, select_var, geoid, file_name: str):
     df_final = df_final[out_var + select_var['UCR']]
     
     print("Saving...")
-    df_final.to_csv(OUTPUT_PATH + 'output.csv', index=False)
+    return df_final
 
 # Run the processing function
 #df_final = process_data(TARGET_START, TARGET_END, SAMPLE_SIZE, SELECT_VAR)
