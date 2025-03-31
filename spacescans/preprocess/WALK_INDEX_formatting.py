@@ -1,16 +1,29 @@
-"""THE WALKABILITY INDEX FORMATTED FILE IS CREATED BY DOING THE FOLLOWING STEPS:
-1 - DOWNLOAD THE RAW WALKABILITY INDEX CSV FILE FROM HERE: https://catalog.data.gov/dataset/walkability-index7
-2 - USE THIS SCRIPT TO GENERATE THE GEOID AND NATWALKIND FROM THE RAW .CSV FILE. 
-3 - THE RAW FILE HAS GEOID10 AND GEOID20 POPULATED IN SCIENTIFIC NOTATATION WHICH DOES NOT WORK FOR OUR NEEDS.  
-    IN ORDER TO GET THE CORRECT GEOID OR BLOCK GROUP, THE SCRIPT BELOW
-    COMBINES THE STATEFP (STATE FIPS), COUNTYFP (COUNTY FIPS), TRACTCE, AND BLKGRPCE INTO ONE GEOID. """
-
-from itertools import product
 import pandas as pd
+import geopandas as gpd
+import fiona
+from args import parse_args_with_defaults
 
-def read_raw_exposome():
-    file_path = '/Users/allison.burns/Desktop/exposome/WALKABILITY/EPA_SmartLocationDatabase_V3_Jan_2021_Final.csv'
-    raw_walk_index = pd.read_csv(file_path)
+def read_gdb(raw_data_path):
+    
+    gdb_path = raw_data_path # Path to the .gdb file
+
+    # List all layers in the file
+    layers = fiona.listlayers(gdb_path)
+    print("Layers:", layers)
+
+    # Load a specific layer
+    layer_name = layers[0]
+    gdf = gpd.read_file(gdb_path, layer=layer_name)
+
+    # Display the data
+    print(gdf.head())
+    
+    return gdf
+
+
+def read_raw_exposome(raw_data_path):
+
+    raw_walk_index = read_gdb(raw_data_path)
     selected_columns = ['STATEFP', 'COUNTYFP', 'TRACTCE', 'BLKGRPCE', 'NatWalkInd']
     
     # add the approrpiate number of zeros for padding so that this creates the correctly formatted GEOID
@@ -31,16 +44,21 @@ def read_raw_exposome():
 
     new_walk_index = raw_walk_index[['combined_columns', 'NatWalkInd']]
     new_walk_index = new_walk_index.copy()  
-    new_walk_index.rename(columns={'combined_columns': 'GEOID10'}, inplace=True)
+    new_walk_index.rename(columns={'combined_columns': 'FIPS'}, inplace=True)
+    
+    new_walk_index['YEAR'] = 2021
 
     return new_walk_index
 
-def save_exposome(walk_index):
-    walk_index.to_csv('/Users/allison.burns/Desktop/exposome/WALKABILITY/formatted_walk_index_TEST.csv', index=False)
+def save_exposome(walk_index, output_dir):
+    walk_index.to_csv(output_dir + 'formatted_wi_2021.csv', index=False)
 
-def main():
-    new_walk_index = read_raw_exposome()
-    save_exposome(new_walk_index)
+def main(raw_data_path,output_dir):
+    
+    new_walk_index = read_raw_exposome(raw_data_path)
+    save_exposome(new_walk_index, output_dir)
+    print("Walkability Index formatting completed!")
 
 if __name__== '__main__':
-    main()
+    args = parse_args_with_defaults()
+    main(args["data_list"][0],args["output_dir"])

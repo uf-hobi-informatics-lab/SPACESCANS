@@ -1,5 +1,8 @@
 import pandas as pd
 import re
+import sys
+import argparse
+from args import parse_args_with_defaults
 
 def process_NATA(excel_file_path, csv_file_path):
     filename = excel_file_path.split('/')[-1]  # Get the filename from the path
@@ -15,20 +18,22 @@ def process_NATA(excel_file_path, csv_file_path):
     # Add the year column and change all column headers to upper case
     df['YEAR'] = year
     df.columns = df.columns.str.upper()
+    df.rename(columns={'TRACT': 'FIPS'}, inplace=True)
 
     
 
     # Export the DataFrame to a CSV file
-    df.to_csv(csv_file_path, index=False)
+    df.to_csv(csv_file_path + 'formatted_nata.csv', index=False)
 
     print("NATA formatting completed!")
 
-def main():
-    # Define the path to the Excel file and the desired CSV file name
-    excel_file_path = input("Please enter the path to the NATA exposome file: ")
-    csv_file_path = '/Users/allison.burns/Desktop/exposome/NATA/formatted_nata.csv'  # Update with the desired CSV file name
+def main(excel_file_path, csv_file_path):
 
     process_NATA(excel_file_path, csv_file_path)
 
 if __name__== '__main__':
-    main()
+     
+    args = parse_args_with_defaults()
+
+    print("\nApplication Running...")
+    main(args["data_list"][0],args["output_dir"]) 
