@@ -41,17 +41,14 @@ Allows the user to run linkage using a specified project name
 *Syntax*
 
     $ python3 run_spacescans.py link [-h] [-p PROJECT_NAME]
-### preprocessing pipeline
+---    
+## Preprocessing pipeline
 The preprocessing pipeline simplifies the task of translating raw exposome data from government sources, available in various geographical formats, into ZIP codes (currently supporting ZIP9). This tool allows you to easily process data by providing a raw exposome data list, output directory, desired exposome type, and buffer file directory.
-
----
 
 ### Getting Started
 
 #### Quick Start with One Command
 You can start processing your data using one of the following methods:
-
----
 
 #### **Method 1: Basic Command Line Usage**
 Run this command to process data using the National Walkability Index as an example:
@@ -66,7 +63,6 @@ python run_preprocessing_pipeline.py --data_list /path/to/data_list/ \
 Replace the paths and parameters with your actual data directories and desired exposome type.
 
 ---
-
 #### **Method 2: Configuration File**
 The `./example` directory contains sample configurations to help you get started quickly.
 
@@ -85,7 +81,6 @@ python run_preprocessing_pipeline.py --config ./example/config_wi.yaml
 ```
 
 ---
-
 #### **Method 3: Overriding Configuration Parameters**
 You can update specific parameters in the `config.yaml` file directly from the command line. For example, to replace the data list directory:
 
@@ -95,8 +90,68 @@ python run_preprocessing_pipeline.py --config ./example/config_wi.yaml \
 ```
 
 ---
-
 ### Additional Examples
 Explore the `./example` directory for more examples and templates to guide your data preprocessing tasks. Customize the `config.yaml` files for different exposome types and geographical formats.
 
 ---
+
+## Exposome Linkage Pipeline
+
+The **Exposome Linkage Pipeline** enables users to link ZIP9-level address data with a variety of exposome datasets (e.g., Walkability, NATA, CACES, HUD) based on specified time ranges. The pipeline computes **time-weighted averages** for exposome variables across **yearly**, **monthly**, or **quarterly** periods depending on the type of data.
+
+### Getting Started
+
+#### **Method 1: Quick Start with One Command**
+You can execute the full linkage pipeline using:
+
+```bash
+python linkage.py \
+  --data_list /path/to/cleaned.csv \
+  --output_dir /path/to/output \
+  --buffer_dir /data/exposome_db \
+  --project_name test \
+  --target_start 2012-02-21 \
+  --target_end 2023-05-30 \
+  --select_var WALKABILITY \
+  --exposome_type wi
+```
+
+#### Other Features
+- **select_var**: if not specify the select_var, the scripts will do the linkages for all headers under that exposome_type.
+- **csv_linkage**: Optional link the preprocessed exposome via .csv file. 
+- **parallel_linkage_from_json**: Optional Link multiple exposome sources concurrently using threading.
+
+#### Output
+Linked data is saved as:
+
+```
+/path/to/output/project_name/linked_<EXPOSOME_TYPE>.csv
+```
+
+If a file with the same name exists, it appends a counter (e.g., `linked_WI_1.csv`, `linked_WI_2.csv`, etc.).
+
+---
+#### **Method 2: Configuration from JSON file**
+Example JSON file:
+```json
+[
+  {
+    "exposome_type": "HUD",
+    "SELECT_VAR":
+  }
+]
+```
+
+You can run:
+
+```bash
+python linkage.py --json_file linkage_groups.json \
+                  --data_list /path/to/cleaned.csv \
+                  --output_dir /path/to/output \
+                  --buffer_dir /data/exposome_db \
+                  --project_name test \
+                  --target_start 2012-02-21 \
+                  --target_end 2023-05-30
+
+```
+
