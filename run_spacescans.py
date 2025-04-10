@@ -12,6 +12,7 @@ from spacescans.dataclean import address_cleaning as addr
 from spacescans import csv_linkage as link
 from spacescans.linkage import db_linkage_fara_cbp as db_fara_cbp
 from spacescans.linkage import db_linkage_ucr as db_ucr
+from spacescans.database import upload as db
 
 #========= GLOBAL VARIABLES ===========
 logger = logging.getLogger()
@@ -301,6 +302,9 @@ def show_available_exposomes():
                     
     print("---------------------------------------------")
 
+def run_upload(target, filepath):
+    db.upload(target, filepath)
+
 def main():
 
     #============= PARSER DECLARATIONS ==============
@@ -376,6 +380,18 @@ def main():
     )
     #### NEED TO ADD FLAGS AND SUCH TO  LINK PARSER
     show_catalog = subparser.add_parser('catalog', help='Display the full exposome catalog available in the databases')
+   
+    
+    upload_parser = subparser.add_parser('upload', help="Upload a file to the database.")
+
+    upload_parser.add_argument(
+        '-f', '--filepath',
+        default='',
+        required=True,
+        help='The location of the file you wish to upload'
+    )
+    
+    
     #=========== END PARSER DECLARATIONS ============
     
     #================ BUILD LOGGER ==================
@@ -426,6 +442,9 @@ def main():
         run_linkage(args.project_name)
     elif args.command=='show':
         show_available_exposomes()
+    elif args.command=='upload':
+        run_upload(args.target, args.filepath)
+        
 
 
 
