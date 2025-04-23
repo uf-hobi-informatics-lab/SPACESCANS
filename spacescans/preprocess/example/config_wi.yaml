@@ -1,0 +1,5 @@
+data_list:
+- /home/cwang6/scripts/preprocessing/example/example_data/EPA_SmartLocationDatabase_V3_Jan_2021_Final.csv
+output_dir: /home/cwang6/scripts/preprocessing/example/example_data/
+buffer_dir: /home/cwang6/data/original/
+exposome_type: wi
