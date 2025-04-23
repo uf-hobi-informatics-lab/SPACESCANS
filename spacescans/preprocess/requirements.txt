@@ -1,0 +1,13 @@
+pandas
+numpy
+SQLAlchemy
+pyreadr
+xarray 
+geopandas 
+rasterio 
+exactextract 
+tqdm 
+rioxarray 
+netCDF4 
+h5netcdf
+fiona

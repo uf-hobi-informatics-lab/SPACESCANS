@@ -11,12 +11,28 @@ def read_buffer(buffer_path):
     return pd.read_csv(buffer_path + 'buffer250tozcta_all.csv')
 
 def rename(formatted_exposome, exposome_type): 
-    formatted_exposome.rename(columns={'ZIP': 'GEOID10'}, inplace=True)
+    formatted_exposome.rename(columns={'FIPS': 'GEOID10'}, inplace=True)
+    
+    if exposome_type.lower() in ('zbp', 'cbp'):
+        formatted_exposome.rename(columns={
+            'RELIGIOUS': 'religious',
+            'CIVIC': 'civic', 
+            'BUSINESS': 'business', 
+            'POLITICAL': 'political', 
+            'PROFESSIONAL': 'professional',
+            'LABOR': 'labor',
+            'BOWLING': 'bowling', 
+            'RECREATIONAL': 'recreational',
+            'SPORTS': 'golf',
+            'GOLF': 'sports'
+        }, inplace=True)
+        
     return formatted_exposome
 
 def drop_columns(formatted_exposome, exposome_type):
-    formatted_exposome.drop(columns=['RELIGIOUS','CIVIC', 'BUSINESS', 'POLITICAL', 'PROFESSIONAL',
-                                     'LABOR','BOWLING', 'RECREATIONAL','SPORTS','GOLF','POP'], inplace=True)
+    
+    if exposome_type.lower() in ('zbp', 'cbp'):
+        formatted_exposome.drop(columns=['R_RELIGIOUS','R_CIVIC', 'R_BUSINESS', 'R_POLITICAL', 'R_PROFESSIONAL', 'R_LABOR','R_BOWLING', 'R_RECREATIONAL','R_SPORTS','R_GOLF','POP'], inplace=True)
     return formatted_exposome
     
 
