@@ -44,14 +44,14 @@ def read_raw_exposome(raw_data_path):
 
     new_walk_index = raw_walk_index[['combined_columns', 'NatWalkInd']]
     new_walk_index = new_walk_index.copy()  
-    new_walk_index.rename(columns={'combined_columns': 'FIPS'}, inplace=True)
+    new_walk_index.rename(columns={'combined_columns': 'GEOID10'}, inplace=True)
     
     new_walk_index['YEAR'] = 2021
 
     return new_walk_index
 
 def save_exposome(walk_index, output_dir):
-    walk_index.to_csv(output_dir + 'formatted_wi_2021.csv', index=False)
+    walk_index.to_csv(output_dir + 'formatted_wi.csv', index=False)
 
 def main(raw_data_path,output_dir):
     

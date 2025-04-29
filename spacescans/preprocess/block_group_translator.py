@@ -1,23 +1,35 @@
-'''
-    TO: Convert caces and National Walkability Index into by zip9 and per time identifier
-    Notes: Original data structure is by block ground and YEAR
-
-'''
+from itertools import product
 import pandas as pd
+import sys
 import os
+import argparse
+from args import parse_args_with_defaults
 
-def read_formatted_exposome():
+def read_formatted_exposome(exposome_path):
     formatted_exposome = pd.read_csv(exposome_path)
     return formatted_exposome
 
-def read_buffer():
-    buffer_path = '/home/cwang6/exposome/data/original_data/buffer250tobg_all.csv' # Change this path if necessary
-    buffer = pd.read_csv(buffer_path)
+def read_buffer(buffer_path):
+    buffer = pd.read_csv(buffer_path + "buffer250tobg_all.csv")
     return buffer
+
+def rename(formatted_exposome, exposome_type):
+    
+    if 'caces' in exposome_type.lower():    
+        formatted_exposome.rename(columns={'FIPS': 'GEOID10'}, inplace=True)
+        
+    if exposome_type.lower() == 'wi':
+        formatted_exposome.rename(columns={'FIPS': 'GEOID10'}, inplace=True)
+        formatted_exposome.rename(columns={'NatWalkInd': 'WALKABILITY'}, inplace=True)
+
+    return formatted_exposome
+
+def drop_columns(formatted_exposome, exposome_type):
+  
+    return formatted_exposome
 
 def block_group_translator(formatted_exposome, buffer):
     buffer = buffer[['zip9', 'GEOID10', 'value']]
-    formatted_exposome.rename(columns={'FIPS': 'GEOID10'}, inplace=True)
     
     df = pd.merge(buffer, formatted_exposome, on='GEOID10', how='left')
     
@@ -37,33 +49,53 @@ def block_group_translator(formatted_exposome, buffer):
         grouped[var] = grouped[var + '_weighted'] / grouped['value_sum']
 
     df_result = grouped[columns_expo].reset_index()
-    df_result.rename(columns={'zip9': 'ZIP_9'}, inplace=True)  
+    df_result.rename(columns = {'zip9': 'ZIP_9'}, inplace = True)
+    # Format ZIP_9 as String(9)
+    df_result['ZIP_9'] = df_result['ZIP_9'].astype(str).str.zfill(9)
+
+    # Format YEAR as String(4)
+    df_result = df_result.dropna(subset=['YEAR'])
+    df_result['YEAR'] = df_result['YEAR'].astype(int).astype(str).str.zfill(4)
     
     return df_result
 
-def save_preprocess_exposome(types,exposome):
-    exposome.to_csv(f'preprocess_{types}.csv', index=False)
+def save_preprocess_exposome(types, exposome, output_path):
+    exposome.to_csv(f'{output_path}preprocess_{types}.csv', index=False)
+    
 
-def main():
-    #CACES: year
-    #exposome_path = '/home/cwang6/exposome/data/original_data/formatted_caces.csv'   
-    formatted_exposome = read_formatted_exposome()
-    buffer = read_buffer()
+def main(exposome_type, output_path, buffer_path):
+    
+    # Check if the file name contains certain keywords
+    if 'caces' in exposome_type:    
+        exposome_path = f'{output_path}formatted_caces.csv'
+    
+    elif 'wi' in exposome_type:
+        exposome_path = f'{output_path}formatted_wi.csv'
+ 
+        
+    formatted_exposome = read_formatted_exposome(exposome_path)
+    rename(formatted_exposome, exposome_type)
+    drop_columns(formatted_exposome, exposome_type)
+    buffer = read_buffer(buffer_path)
     preprocess_exposome = block_group_translator(formatted_exposome, buffer)
 
-    #National Walkability Index: cross-sectional
-    #exposome_path = '/home/cwang6/exposome/data/original_data/formatted_walk_index.csv'
-    
     # Extract the file name from the path
     file_name = os.path.basename(exposome_path).lower()
     
     # Check if the file name contains certain keywords
-    if 'cace' in file_name:    
-        save_preprocess_exposome('caces', preprocess_exposome)
-    elif 'wi' in file_name or 'walk' in file_name or 'walkbility' in file_name:
-        save_preprocess_exposome('wi', preprocess_exposome)
+    if 'caces' in file_name:    
+        save_preprocess_exposome('caces', preprocess_exposome, output_path)
+    
+    elif 'wi' in file_name:
+        save_preprocess_exposome('wi', preprocess_exposome, output_path)
+    
     else:
-        save_preprocess_exposome('exposome', preprocess_exposome)
-        
+        save_preprocess_exposome('exposome', preprocess_exposome, output_path)
+    
+    
 if __name__== '__main__':
-    main()
+
+    args = parse_args_with_defaults()
+
+    print("\nApplication Running...")
+    main(args["exposome_type"], args["output_dir"], args["buffer_dir"])

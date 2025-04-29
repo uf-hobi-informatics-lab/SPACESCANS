@@ -1,9 +1,11 @@
 from itertools import product
-
 import pandas as pd
+import sys
+import argparse
+from args import parse_args_with_defaults
 
-def read_raw_exposome():
-    raw_caces = pd.read_csv("/Users/allison.burns/Desktop/exposome/CACES/uwc17066350009005fb15292c3f979ab109b4b4f789d70e1.csv")
+def read_raw_exposome(raw_data_path):
+    raw_caces = pd.read_csv(raw_data_path) 
     return raw_caces
 
 def translate_exposome(raw_caces):
@@ -23,13 +25,18 @@ def translate_exposome(raw_caces):
     new_caces.columns = new_caces.columns.str.upper()           
     return new_caces
 
-def save_exposome(caces):
-    caces.to_csv('formatted_caces.csv', index=False)
+def save_exposome(caces, csv_file_path):
+    caces.to_csv(csv_file_path + 'formatted_caces.csv', index=False)
 
-def main():
-    raw_caces = read_raw_exposome()
+def main(raw_data_path, csv_file_path):
+
+    raw_caces = read_raw_exposome(raw_data_path)
     new_caces = translate_exposome(raw_caces)
-    save_exposome(new_caces)
+    save_exposome(new_caces, csv_file_path)
 
 if __name__== '__main__':
-    main()
+
+    args = parse_args_with_defaults()
+
+    print("\nApplication Running...")
+    main(args["data_list"][0],args["output_dir"])   
