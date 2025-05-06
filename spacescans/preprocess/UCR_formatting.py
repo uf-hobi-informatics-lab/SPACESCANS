@@ -1,6 +1,10 @@
 import pandas as pd
 import re
 import sys
+import argparse
+from args import parse_args_with_defaults
+import warnings
+
 
 def extract_year_from_sheet_name(sheet_name):
     match = re.search(r'(\d{4})', sheet_name)
@@ -202,15 +206,10 @@ def fips_mapping_dictionary(df):
 
 
 def save_combined_exposome(dataframe, output_path):
-    dataframe.to_csv(output_path, index=False)
+    dataframe.to_csv(output_path + 'formatted_ucr.csv', index=False)
 
-def main():
-    if len(sys.argv) < 2:
-        print("Error: raw_data_path argument is missing.")
-        sys.exit(1)
-    file_path = sys.argv[1] 
-    output_path = 'formatted_ucr.csv'
-
+def main(file_path, output_path):
+    warnings.filterwarnings("ignore", message="Cannot parse header or footer")
     combined_data = read_exposome_from_all_sheets(file_path)
     combined_data = add_total_column(combined_data)
     combined_data = add_percentage_columns(combined_data)
@@ -218,4 +217,8 @@ def main():
     save_combined_exposome(combined_data, output_path)
 
 if __name__ == '__main__':
-    main()
+    
+    args = parse_args_with_defaults()
+
+    print("\nApplication Running...")
+    main(args["data_list"][0],args["output_dir"])   
