@@ -1,0 +1,5 @@
+data_list:
+- /blue/brm_irb201500466/cwang6/exposome_irb201500466/original/raw_exposome/CACES/uwc17066350009005fb15292c3f979ab109b4b4f789d70e1.csv # this file only includes 2020 data, need to replace.
+output_dir: /blue/brm_irb201500466/cwang6/exposome_irb201500466/output/preprocessed_exposome_zip9/
+buffer_dir: /blue/brm_irb201500466/cwang6/exposome_irb201500466/original/buffer/
+exposome_type: caces
