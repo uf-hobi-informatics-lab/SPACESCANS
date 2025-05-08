@@ -1,0 +1,5 @@
+data_list:
+- /blue/bianjiang/cwang6/exposome/original/nata14_all175HAP.Rda  #original file nata2014v2_national_cancerrisk_by_tract_poll.xlsx is wrong raw data, so use the nata14_all175HAP.Rda
+output_dir: /blue/bianjiang/cwang6/exposome/output/spacescan/
+buffer_dir: /home/cwang6/exposome/data/original_data/ 
+exposome_type: nata

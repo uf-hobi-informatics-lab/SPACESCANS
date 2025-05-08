@@ -1,0 +1,4 @@
+data_list: /blue/bianjiang/cwang6/exposome/original/zbp_nationwide_0520.Rda
+output_dir: /blue/bianjiang/cwang6/exposome/output/spacescan/
+buffer_dir: /home/cwang6/exposome/data/original_data/ 
+exposome_type: zbp

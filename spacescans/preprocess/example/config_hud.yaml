@@ -1,0 +1,6 @@
+data_list:
+- /blue/brm_irb201500466/cwang6/exposome_irb201500466/original/raw_exposome/HUD/ #this is a folder, put all files in the same folder, like usps_vac_032024_tractsum_2kx.dbf
+output_dir: /blue/brm_irb201500466/cwang6/exposome_irb201500466/output/preprocessed_exposome_zip9/
+buffer_dir: /home/cwang6/exposome/data/original_data/ 
+exposome_type: hud
+
