@@ -1,11 +1,13 @@
 import os
 import time
 import json
+import calendar
 import pandas as pd
 import numpy as np
 from datetime import datetime, timedelta
 from sqlalchemy import create_engine
 from concurrent.futures import ThreadPoolExecutor
+from args import parse_args_with_defaults
 
 
 def csv_linkage(df_address, exposome_dir, exposome_type, TARGET_START, TARGET_END, SELECT_VAR):
@@ -21,31 +23,63 @@ def csv_linkage(df_address, exposome_dir, exposome_type, TARGET_START, TARGET_EN
         "MONTH": ["YEAR", "MONTH"],
         "QUARTER": ["YEAR", "QUARTER"]
     }
+    time_var = time_var_mapping[period_type]
     FIX_VAR = ["ZIP_9"] + time_var_mapping.get(period_type, [])
 
-    # Load .csv formated exposome data 
-    df_exposome_sub = pd.read_csv(exposome_dir)
-    print("Loaded exposome data.")
+    # Load .csv formated exposome data
+    start_time = time.time()
+    df_exposome_sub = pd.read_csv(f'{exposome_dir}preprocess_{exposome_type.lower()}_zip9.csv')
+    end_time = time.time()  # Start timer to track performance
+    print("Loaded exposome data time:", end_time-start_time)
     
     # Convert time columns to string for safe merging
-    df_exposome_sub[FIX_VAR] = df_exposome_sub[FIX_VAR].astype(str)
+    for t in time_var:
+        df_exposome_sub[t] = df_exposome_sub[t].astype(float).astype(int).astype(str)
+    # Convert all other columns (excluding time_var and ZIP_9) to float
+    for col in df_exposome_sub.columns:
+        if col not in ["ZIP_9"] + time_var:
+            df_exposome_sub[col] = pd.to_numeric(df_exposome_sub[col], errors='coerce')
+
+    df_exposome_sub["ZIP_9"] = df_exposome_sub["ZIP_9"].astype(str)
 
     # Process address periods
     df_new = _address_wrangling(df_address, TARGET_START, TARGET_END, exposome_type)
 
     # Convert time columns to string for merging
-    df_new[FIX_VAR] = df_new[FIX_VAR].astype(str)
+    for t in time_var:
+        df_new[t] = df_new[t].astype(float).astype(int).astype(str)
+    df_new["ZIP_9"] = df_new["ZIP_9"].astype(str)
 
     # Perform in-memory merge based on ZIP_9 and the corresponding time variables
     merge_addr_expo = df_new.merge(df_exposome_sub, on=FIX_VAR, how='left')
 
+    # Determine exposome columns (those not in df_new)
+    exposome_cols = [col for col in df_exposome_sub.columns if col not in FIX_VAR]
+
+    # Drop rows where all exposome columns are NaN
+    merge_addr_expo = merge_addr_expo.dropna(subset=exposome_cols, how='all')
+    
     # Compute time-weighted averages
     if SELECT_VAR is None:
-        SELECT_VAR = df_exposome_sub.columns.drop(FIX_VAR)
+        SELECT_VAR = list(df_exposome_sub.columns.drop(FIX_VAR))
 
     df_final = _time_weighted_averages(merge_addr_expo, SELECT_VAR)
 
     return df_final
+
+
+
+table_map = {
+    'ACAG': 'ACAG',
+    'NATA': 'EPA_NATA',
+    'ACS': 'ACS',
+    'ZBP': 'CBP',
+    'FARA': 'USDA_FARA',
+    'CACES': 'CACES',
+    'UCR': 'UCR',
+    'WI': 'NATIONAL_WALKABILITY_INDEX',
+    'HUD': 'US_HUD'
+}
 
 
 
@@ -64,27 +98,57 @@ def db_linkage(df_address, db_url, exposome_type, TARGET_START, TARGET_END, SELE
         "MONTH": ["YEAR", "MONTH"],
         "QUARTER": ["YEAR", "QUARTER"]
     }
-    FIX_VAR = ["ZIP_9"] + time_var_mapping[period_type]
+    time_var = time_var_mapping[period_type]
+    FIX_VAR = ["ZIP_9"] + time_var
 
-    # Execute SQL query
-    query = f"SELECT {', '.join(SELECT_VAR + FIX_VAR)} FROM {exposome_type}"
-    df_exposome_sub = pd.read_sql(query, engine)
+
+    # Get the actual table name from the map
+    table_name = table_map.get(exposome_type.upper())
     
+    # Build SQL query
+    if SELECT_VAR is None:
+        query = f"SELECT * FROM {table_name}"
+    else:
+        columns = SELECT_VAR + FIX_VAR
+        query = f"SELECT {', '.join(columns)} FROM {table_name}"
+    
+    # Execute the query
+    #print(query)
+    start_time = time.time()
+    df_exposome_sub = pd.read_sql(query, engine)
+    end_time = time.time()  # Start timer to track performance
+    #print(df_exposome_sub.head())
+    print("Query table time:", end_time-start_time)
+     
     # Convert time columns to string for safe merging
-    df_exposome_sub[FIX_VAR] = df_exposome_sub[FIX_VAR].astype(str)
+    df_exposome_sub["ZIP_9"] = df_exposome_sub["ZIP_9"].astype(str)
+    for t in time_var:
+        df_exposome_sub[t] = df_exposome_sub[t].astype(float).astype(int).astype(str)
+    # Convert all other columns (excluding time_var and ZIP_9) to float
+    for col in df_exposome_sub.columns:
+        if col not in ["ZIP_9"] + time_var:
+            df_exposome_sub[col] = pd.to_numeric(df_exposome_sub[col], errors='coerce')
+
 
     # Process address periods
     df_new = _address_wrangling(df_address, TARGET_START, TARGET_END, exposome_type)
 
     # Convert time columns to string for merging
-    df_new[FIX_VAR] = df_new[FIX_VAR].astype(str)
+    df_new["ZIP_9"] = df_new["ZIP_9"].astype(str)
+    for t in time_var:
+        df_new[t] = df_new[t].astype(float).astype(int).astype(str)
 
     # Perform in-memory merge based on ZIP_9 and the corresponding time variables
     merge_addr_expo = df_new.merge(df_exposome_sub, on=FIX_VAR, how='left')
+    # Determine exposome columns (those not in df_new)
+    exposome_cols = [col for col in df_exposome_sub.columns if col not in FIX_VAR]
+
+    # Drop rows where all exposome columns are NaN
+    merge_addr_expo = merge_addr_expo.dropna(subset=exposome_cols, how='all')
 
     # Compute time-weighted averages
     if SELECT_VAR is None:
-        SELECT_VAR = df_exposome_sub.columns.drop(FIX_VAR)
+        SELECT_VAR = list(df_exposome_sub.columns.drop(FIX_VAR))
     df_final = _time_weighted_averages(merge_addr_expo, SELECT_VAR)
 
     engine.dispose()
@@ -249,10 +313,14 @@ def _time_weighted_averages(df, selected_vars):
     for var in selected_vars:
         df[f"{var}_accu"] = df['DAYS'] * df[var]
     
+
     # Aggregate by 'PATID'
     df_final = df.groupby('PATID').agg(
         {**{f"{var}_accu": 'sum' for var in selected_vars}, 'DAYS': 'sum'}
     ).reset_index()
+
+    #print(df_final.head(5))
+    
 
     # Compute weighted averages
     for var in selected_vars:
@@ -290,7 +358,7 @@ def _save_linked_exposome_unique(df, output_url, project_name, exposome_type):
 
 
 # Main execution
-def main(cleaned_lds_url, db_url, output_url, exposome_type, TARGET_START, TARGET_END, SELECT_VAR):
+def main(cleaned_lds_url, db_url, output_url, exposome_type, TARGET_START, TARGET_END, SELECT_VAR,project_name):
     # Ececution
     start_time = time.time()  # Start timer to track performance
     
@@ -299,11 +367,13 @@ def main(cleaned_lds_url, db_url, output_url, exposome_type, TARGET_START, TARGE
     # csv_to_db(preprocess_exposome_url, db_url, exposome_type) #for demo
     
     df_address = pd.read_csv(cleaned_lds_url) 
-    df_address = df_address.head(10000) # For demo
+    df_address = df_address.head(100) # For demo
     df_address.rename(columns = {'ID':'PATID'}, inplace = True)
+    print(df_address.head())
 
    
     df_final = db_linkage(df_address, db_url, exposome_type ,TARGET_START, TARGET_END, SELECT_VAR)
+    #df_final = csv_linkage(df_address, db_url, exposome_type, TARGET_START, TARGET_END, SELECT_VAR)
     print(df_final.head())
     
     _save_linked_exposome_unique(df_final, output_url, project_name, exposome_type)
@@ -312,14 +382,26 @@ def main(cleaned_lds_url, db_url, output_url, exposome_type, TARGET_START, TARGE
     print("Runing time:", end_time-start_time) 
     
 if __name__ == '__main__':
+  
+    config = parse_args_with_defaults()
+
+    cleaned_lds_url = config["data_list"][0]
+    output_url = config["output_dir"]
+    db_url = config["db_url"]
+    project_name = config.get("project_name", "test")
+    exposome_type = config["exposome_type"]
+    TARGET_START = pd.Timestamp(config.get("target_start", "2012-01-01"))
+    TARGET_END = pd.Timestamp(config.get("target_end", "2023-12-31"))
+    SELECT_VAR = config.get("select_var", None)
+    print(config)
+
+    main(cleaned_lds_url, db_url, output_url, exposome_type, TARGET_START, TARGET_END, SELECT_VAR,project_name)
     
-    # pre-set parameter, will fetch from frontend in the future
-    project_name = 'test' 
-    cleaned_lds_url = '/home/cwang6/data/original/HIV_Young_ZH_ldsz9_cleaned.csv'
-    db_url = '/data/exposome_db/zip9_exposomes.db'
-    output_url = '/home/cwang6/data/output/'
-    TARGET_START = pd.Timestamp('2012-02-21')
-    TARGET_END = pd.Timestamp('2023-5-30')
-    SELECT_VAR = ['WALKABILITY'] 
-    exposome_type = 'WI'
-    main(cleaned_lds_url, db_url, output_url, exposome_type, TARGET_START, TARGET_END, SELECT_VAR)
+
+'''
+--db link
+python /home/cwang6/exposome/code/spacescan/linkage.py --data_list /blue/brm_irb201500466/cwang6/exposome_irb201500466/original/address/HIV_Young_ZH_ldsz9_cleaned.csv --output_dir /blue/brm_irb201500466/cwang6/exposome_irb201500466/output/spacescan --db_url /blue/brm_irb201500466/cwang6/exposome_irb201500466/output/preprocessed_exposome_zip9/zip9_exposomes.db --project_name test1 --target_start 2020-02-21 --target_end 2023-05-30 --exposome_type wi 
+
+--csv link
+python /home/cwang6/exposome/code/spacescan/linkage.py --data_list /blue/brm_irb201500466/cwang6/exposome_irb201500466/original/address/HPV_YQ_ldsz9_cleaned.csv --output_dir /blue/brm_irb201500466/cwang6/exposome_irb201500466/output/spacescan/ --db_url /blue/brm_irb201500466/cwang6/exposome_irb201500466/output/preprocessed_exposome_zip9/ --project_name test1 --target_start 2012-01-01 --target_end 2023-12-31 --exposome_type ucr
+'''
