@@ -254,7 +254,77 @@ elif target == 'national_walkability_index':
     # Ensure essential columns don't have NaN values
     source = source.dropna(subset=["ZIP_9", "YEAR"])
 
-
+elif target == 'epa_nata':
+    source = pd.read_csv(source)  
+    
+    columns_to_read = ["ZIP_9", "YEAR", "natapol1", "natapol2", "natapol3", "natapol4", "natapol5", "natapol6", "natapol7", "natapol8", "natapol9", "natapol10",
+    "natapol11", "natapol12", "natapol13", "natapol14", "natapol15", "natapol16", "natapol17", "natapol18", "natapol19", "natapol20",
+    "natapol21", "natapol22", "natapol23", "natapol24", "natapol25", "natapol26", "natapol27", "natapol28", "natapol29", "natapol30",
+    "natapol31", "natapol32", "natapol33", "natapol34", "natapol35", "natapol36", "natapol37", "natapol38", "natapol39", "natapol40",
+    "natapol41", "natapol42", "natapol43", "natapol44", "natapol45", "natapol46", "natapol47", "natapol48", "natapol49", "natapol50",
+    "natapol51", "natapol52", "natapol53", "natapol54", "natapol55", "natapol56", "natapol57", "natapol58", "natapol59", "natapol60",
+    "natapol61", "natapol62", "natapol63", "natapol64", "natapol65", "natapol66", "natapol67", "natapol68", "natapol69", "natapol70",
+    "natapol71", "natapol72", "natapol73", "natapol74", "natapol75", "natapol76", "natapol77", "natapol78", "natapol79", "natapol80",
+    "natapol81", "natapol82", "natapol83", "natapol84", "natapol85", "natapol86", "natapol87", "natapol88", "natapol89", "natapol90",
+    "natapol91", "natapol92", "natapol93", "natapol94", "natapol95", "natapol96", "natapol97", "natapol98", "natapol99", "natapol100",
+    "natapol101", "natapol102", "natapol103", "natapol104", "natapol105", "natapol106", "natapol107", "natapol108", "natapol109", "natapol110",
+    "natapol111", "natapol112", "natapol113", "natapol114", "natapol115", "natapol116", "natapol117", "natapol118", "natapol119", "natapol120",
+    "natapol121", "natapol122", "natapol123", "natapol124", "natapol125", "natapol126", "natapol127", "natapol128", "natapol129", "natapol130",
+    "natapol131", "natapol132", "natapol133", "natapol134", "natapol135", "natapol136", "natapol137", "natapol138", "natapol139", "natapol140",
+    "natapol141", "natapol142", "natapol143", "natapol144", "natapol145", "natapol146", "natapol147", "natapol148", "natapol149", "natapol150",
+    "natapol151", "natapol152", "natapol153", "natapol154", "natapol155", "natapol156", "natapol157", "natapol158", "natapol159", "natapol160",
+    "natapol161", "natapol162", "natapol163", "natapol164", "natapol165", "natapol166", "natapol167", "natapol168", "natapol169", "natapol170",
+    "natapol171", "natapol172", "natapol173", "natapol174", "natapol175"]
+    available_columns = [col for col in columns_to_read if col in source.columns]
+    
+    # If there are any columns that are not found in the DataFrame, log or handle it
+    missing_columns = set(columns_to_read) - set(available_columns)
+    if missing_columns:
+        print(f"Warning: The following columns were not found in the DataFrame and will be ignored: {missing_columns}")
+    
+    source = source[available_columns]
+        
+    columns_to_convert = ["natapol1", "natapol2", "natapol3", "natapol4", "natapol5", "natapol6", "natapol7", "natapol8", "natapol9", "natapol10",
+    "natapol11", "natapol12", "natapol13", "natapol14", "natapol15", "natapol16", "natapol17", "natapol18", "natapol19", "natapol20",
+    "natapol21", "natapol22", "natapol23", "natapol24", "natapol25", "natapol26", "natapol27", "natapol28", "natapol29", "natapol30",
+    "natapol31", "natapol32", "natapol33", "natapol34", "natapol35", "natapol36", "natapol37", "natapol38", "natapol39", "natapol40",
+    "natapol41", "natapol42", "natapol43", "natapol44", "natapol45", "natapol46", "natapol47", "natapol48", "natapol49", "natapol50",
+    "natapol51", "natapol52", "natapol53", "natapol54", "natapol55", "natapol56", "natapol57", "natapol58", "natapol59", "natapol60",
+    "natapol61", "natapol62", "natapol63", "natapol64", "natapol65", "natapol66", "natapol67", "natapol68", "natapol69", "natapol70",
+    "natapol71", "natapol72", "natapol73", "natapol74", "natapol75", "natapol76", "natapol77", "natapol78", "natapol79", "natapol80",
+    "natapol81", "natapol82", "natapol83", "natapol84", "natapol85", "natapol86", "natapol87", "natapol88", "natapol89", "natapol90",
+    "natapol91", "natapol92", "natapol93", "natapol94", "natapol95", "natapol96", "natapol97", "natapol98", "natapol99", "natapol100",
+    "natapol101", "natapol102", "natapol103", "natapol104", "natapol105", "natapol106", "natapol107", "natapol108", "natapol109", "natapol110",
+    "natapol111", "natapol112", "natapol113", "natapol114", "natapol115", "natapol116", "natapol117", "natapol118", "natapol119", "natapol120",
+    "natapol121", "natapol122", "natapol123", "natapol124", "natapol125", "natapol126", "natapol127", "natapol128", "natapol129", "natapol130",
+    "natapol131", "natapol132", "natapol133", "natapol134", "natapol135", "natapol136", "natapol137", "natapol138", "natapol139", "natapol140",
+    "natapol141", "natapol142", "natapol143", "natapol144", "natapol145", "natapol146", "natapol147", "natapol148", "natapol149", "natapol150",
+    "natapol151", "natapol152", "natapol153", "natapol154", "natapol155", "natapol156", "natapol157", "natapol158", "natapol159", "natapol160",
+    "natapol161", "natapol162", "natapol163", "natapol164", "natapol165", "natapol166", "natapol167", "natapol168", "natapol169", "natapol170",
+    "natapol171", "natapol172", "natapol173", "natapol174", "natapol175"]
+    for column in columns_to_convert:
+        if column in source.columns:
+            source[column] = source[column].fillna(0).astype(float)
+    source = source.dropna(subset=['ZIP_9', 'YEAR'])
+    
+elif target == 'acag':
+    source = pd.read_csv(source)  
+    
+    columns_to_read = ["ZIP_9", "YEAR", "MONTH","BC","NH4","NIT","OM","SO4","SOIL","SS"]
+    available_columns = [col for col in columns_to_read if col in source.columns]
+    
+    # If there are any columns that are not found in the DataFrame, log or handle it
+    missing_columns = set(columns_to_read) - set(available_columns)
+    if missing_columns:
+        print(f"Warning: The following columns were not found in the DataFrame and will be ignored: {missing_columns}")
+    
+    source = source[available_columns]
+        
+    columns_to_convert = ["MONTH","BC","NH4","NIT","OM","SO4","SOIL","SS"]
+    for column in columns_to_convert:
+        if column in source.columns:
+            source[column] = source[column].fillna(0).astype(float)
+    source = source.dropna(subset=['ZIP_9', 'YEAR', 'MONTH'])
     
 
 
