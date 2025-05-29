@@ -12,6 +12,7 @@ from spacescans.dataclean import address_cleaning as addr
 from spacescans import csv_linkage as link
 from spacescans.linkage import db_linkage_fara_cbp as db_fara_cbp
 from spacescans.linkage import db_linkage_ucr as db_ucr
+from spacescans.linkage import linkage
 from spacescans.database import upload as db
 
 #========= GLOBAL VARIABLES ===========
@@ -256,10 +257,10 @@ def run_linkage(project_name):
 
     logger.info("Performing linkage")
     linkage_start = time.time()
-    if target_db=='ucr':
-        result = db_ucr.db_linkage(df_address, DB_URL, target_db, start_date, end_date, selection)
-    else:
-        result = db_fara_cbp.db_linkage(df_address, DB_URL, target_db, start_date, end_date, selection)
+
+    result = linkage.db_linkage(df_address, DB_URL, target_db, start_date, end_date, selection)
+
+
     linkage_end = time.time()
 
     run_time = linkage_end - linkage_start
