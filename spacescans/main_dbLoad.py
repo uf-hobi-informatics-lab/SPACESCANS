@@ -127,7 +127,7 @@ elif target == 'caces':
     create_table(caces)
     print("Created CACES table.")
 
-    columns_to_read = ["zip9", "year", "pm25", "pm10", "co", "no2", "so2", "o3"]
+    columns_to_read = ["ZIP_9", "year", "pm25", "pm10", "co", "no2", "so2", "o3"]
     available_columns = [col for col in columns_to_read if col in source.columns]
 
     # Identify missing columns and add them with default float 0.0
