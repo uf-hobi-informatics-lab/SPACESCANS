@@ -1,9 +1,3 @@
-'''
-    TO: Convert fara, nata, hud, and acs into by zip9 and per time identifier
-    Notes: Original data structure is by census tract and YEAR (or "YEAR AND QUARTER" or YEAR-QUARTER)
-
-'''
-
 import pandas as pd
 import os
 import sys
@@ -14,27 +8,21 @@ def read_formatted_exposome(exposome_path):
     return pd.read_csv(exposome_path)
 
 def read_buffer(buffer_path):
-    return pd.read_csv(buffer_path + 'buffer250totract_all.csv')
+    return pd.read_csv(buffer_path + 'buffer250tozcta_all.csv')
 
-def rename(formatted_exposome, exposome_type):
-    if 'fara' in exposome_type:    
-        formatted_exposome.rename(columns={'FIPS': 'GEOID10'}, inplace=True)
-    
-    elif 'nata' in exposome_type:
-        formatted_exposome.rename(columns={'FIPS': 'GEOID10'}, inplace=True)
-    
-    elif 'hud' in exposome_type:
-        formatted_exposome.rename(columns={'FIPS': 'GEOID10'}, inplace=True)
-    
-    elif 'acs' in exposome_type:
-        formatted_exposome.rename(columns={'FIPS': 'GEOID10'}, inplace=True)
+def rename(formatted_exposome, exposome_type): 
+    formatted_exposome.rename(columns={'ZIP': 'GEOID10'}, inplace=True)
     return formatted_exposome
 
+def drop_columns(formatted_exposome, exposome_type):
+    formatted_exposome.drop(columns=['RELIGIOUS','CIVIC', 'BUSINESS', 'POLITICAL', 'PROFESSIONAL',
+                                     'LABOR','BOWLING', 'RECREATIONAL','SPORTS','GOLF','POP'], inplace=True)
+    return formatted_exposome
     
 
 def cencus_tract_tanslator(formatted_exposome, buffer):
-    #formatted_exposome.rename(columns={'FIPS': 'GEOID10'}, inplace=True)
-    buffer.rename(columns={'FIPS': 'GEOID10'}, inplace=True)
+
+    buffer.rename(columns={'ZCTA5CE10': 'GEOID10'}, inplace=True)
     buffer = buffer[['zip9', 'GEOID10', 'value']]
     
     df = pd.merge(buffer, formatted_exposome, on='GEOID10', how='left')
@@ -121,6 +109,9 @@ def main(exposome_type, output_path, buffer_path):
     
     elif 'acs' in exposome_type:
         exposome_path = f'{output_path}formatted_acs.csv'
+    
+    elif 'zbp' in exposome_type:
+        exposome_path = f'{output_path}formatted_zbp.csv'
         
     elif 'exposome' in exposome_type:
         exposome_path = f'{output_path}formatted_exposome.csv'
@@ -128,7 +119,7 @@ def main(exposome_type, output_path, buffer_path):
         
     formatted_exposome = read_formatted_exposome(exposome_path)
     rename(formatted_exposome, exposome_type)
-
+    drop_columns(formatted_exposome, exposome_type)
     buffer = read_buffer(buffer_path)
     preprocess_exposome = cencus_tract_tanslator(formatted_exposome, buffer)
     
@@ -147,6 +138,9 @@ def main(exposome_type, output_path, buffer_path):
     
     elif 'acs' in file_name:
         save_preprocess_exposome('acs', preprocess_exposome, output_path)
+    
+    elif 'zbp' in file_name:
+        save_preprocess_exposome('zbp', preprocess_exposome, output_path)
     
     else:
         save_preprocess_exposome('exposome', preprocess_exposome, output_path)

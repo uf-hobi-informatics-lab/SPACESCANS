@@ -1,39 +1,63 @@
+from args import parse_args_with_defaults
 import pandas as pd
 import re
 import sys
 import argparse
-from args import parse_args_with_defaults
+import pyreadr
+from pathlib import Path
 
-def process_NATA(excel_file_path, csv_file_path):
-    filename = excel_file_path.split('/')[-1]  # Get the filename from the path
-    year_match = re.search(r'\d{4}', filename)
-    if year_match:
-        year = year_match.group(0)
-    else:
-        raise ValueError("No year found in the filename")
-
-    # Read the Excel file
-    df = pd.read_excel(excel_file_path)
-
-    # Add the year column and change all column headers to upper case
-    df['YEAR'] = year
-    df.columns = df.columns.str.upper()
-    df.rename(columns={'TRACT': 'FIPS'}, inplace=True)
-
+def read_raw_exposome(raw_data_path: str) -> pd.DataFrame:
+    """
+    Read a single .rds file into a DataFrame and pivot to wide format.
     
+    Args:
+        raw_data_path: Path to the input .rds file.
+        
+    Returns:
+        A DataFrame in wide format with pollutants as columns.
+    """
+    print(f"Loading RDS file from: {raw_data_path}")
+    result = pyreadr.read_r(raw_data_path)
+    nata_df = list(result.values())[0]
 
-    # Export the DataFrame to a CSV file
-    df.to_csv(csv_file_path + 'formatted_nata.csv', index=False)
+    if not {'TRACT', 'EXPTOT', 'polid'}.issubset(nata_df.columns):
+        raise ValueError("Required columns ('TRACT', 'EXPTOT', 'polid') not found in the data.")
 
-    print("NATA formatting completed!")
+    nata_df = nata_df[['TRACT', 'EXPTOT', 'polid']]
+    nata_df['YEAR'] = 2014
 
-def main(excel_file_path, csv_file_path):
+    df_wide = nata_df.pivot_table(index=['TRACT', 'YEAR'], columns='polid', values='EXPTOT').reset_index()
+    df_wide.rename(columns={'TRACT': 'FIPS'}, inplace=True)
+    return df_wide
 
-    process_NATA(excel_file_path, csv_file_path)
+def save_exposome(exposome: pd.DataFrame, output_dir: str) -> None:
+    """
+    Save the exposome DataFrame to CSV format.
 
-if __name__== '__main__':
-     
+    Args:
+        exposome: The DataFrame to save.
+        output_dir: The directory where the output CSV will be saved.
+    """
+    output_path = Path(output_dir) / "formatted_nata.csv"
+    print(f"Saving formatted data to: {output_path}")
+    exposome.to_csv(output_path, index=False)
+
+def main(raw_data_path: str, output_dir: str) -> None:
+    print(">>> Reading raw NATA data...")
+    nata_df = read_raw_exposome(raw_data_path)
+
+    print(">>> Saving final formatted data...")
+    save_exposome(nata_df, output_dir)
+
+    print(">>> Process completed successfully.")
+
+if __name__ == '__main__':
     args = parse_args_with_defaults()
+    print(">>> Application Starting...")
+    main(args["data_list"][0], args["output_dir"])
+    print(">>> Application Finished.")
 
-    print("\nApplication Running...")
-    main(args["data_list"][0],args["output_dir"]) 
+'''
+python /home/cwang6/scripts/NATA_formatting.py --data_list /home/cwang6/data/original/nata14_all175HAP.Rda --output_dir /home/cwang6/data/output/test/
+'''
+

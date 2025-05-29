@@ -1,0 +1,5 @@
+data_list:
+- /blue/brm_irb201500466/cwang6/exposome_irb201500466/original/raw_exposome/UCR/Total_Index_Crime_by_County.xlsx
+output_dir: /blue/brm_irb201500466/cwang6/exposome_irb201500466/output/preprocessed_exposome_zip9/
+buffer_dir: /blue/brm_irb201500466/cwang6/exposome_irb201500466/original/buffer/ 
+exposome_type: ucr

@@ -3,6 +3,8 @@ import re
 import sys
 import argparse
 from args import parse_args_with_defaults
+import warnings
+
 
 def extract_year_from_sheet_name(sheet_name):
     match = re.search(r'(\d{4})', sheet_name)
@@ -207,7 +209,8 @@ def save_combined_exposome(dataframe, output_path):
     dataframe.to_csv(output_path + 'formatted_ucr.csv', index=False)
 
 def main(file_path, output_path):
-    
+
+    warnings.filterwarnings("ignore", message="Cannot parse header or footer")
     combined_data = read_exposome_from_all_sheets(file_path)
     combined_data = add_total_column(combined_data)
     combined_data = add_percentage_columns(combined_data)

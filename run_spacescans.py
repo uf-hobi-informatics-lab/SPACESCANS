@@ -4,8 +4,16 @@ import os
 import json
 import pandas as pd
 from datetime import datetime
+from sqlalchemy import create_engine, MetaData, select, func
+from sqlalchemy.types import Float
+import time
 
 from spacescans.dataclean import address_cleaning as addr
+from spacescans import csv_linkage as link
+from spacescans.linkage import db_linkage_fara_cbp as db_fara_cbp
+from spacescans.linkage import db_linkage_ucr as db_ucr
+from spacescans.linkage import linkage
+from spacescans.database import upload as db
 
 #========= GLOBAL VARIABLES ===========
 logger = logging.getLogger()
@@ -21,6 +29,9 @@ valid_log_levels = {
 project_name = ''
 
 
+
+VALID_TARGETS = ['acag', 'caces', 'epa_nata', 'us_hud', 'national_walkability_index', 'usda_fara', 'cbp', 'ucr']
+DB_URL='/Users/jasonglover/Documents/data/exposomes/zip9_exposomes.db'
 #=========== End Global Variables =========
 
 
@@ -36,6 +47,20 @@ def get_project_name(name='new_project'):
         # Iterate until a project name does not exist
         while True:
             if not os.path.exists(os.getcwd()+f'/projects/{name}_{i}.json'):
+                return f'{name}_{i}'
+            i+=1
+
+def get_output_name(name='new_project'):
+    if name == '':
+        name = 'new_project'
+    
+    if not os.path.exists(os.getcwd()+f'/output/linked_{name}.csv'):
+        return f'{name}'
+    else:
+        i = 1
+        # Iterate until a project name does not exist
+        while True:
+            if not os.path.exists(os.getcwd()+f'/output/linked_{name}_{i}.csv'):
                 return f'{name}_{i}'
             i+=1
 
@@ -55,6 +80,24 @@ def is_valid_project(project_name):
     except Exception as e:
         return False
     
+def get_vars():
+    target = input("Which data source would you like to link to? (Options: usda_fara, cbp, ucr)\n")
+    valid_target = is_valid_target(target)
+    while not valid_target:
+        print(f"{target} is not a valid selection")
+        target = input("Which data source would you like to link to? (Options: usda_fara, cbp, ucr)\n")
+        valid_target = is_valid_target(target)
+        
+    selection_input = input("Which variables would you like to link against? (Please separate each selection by comma)\n")
+
+    selection = [var.strip() for var in selection_input.split(',') if var.strip()]
+
+    return target, selection
+
+def is_valid_target(input_target):
+    if input_target in VALID_TARGETS:
+        return True
+    return False
 
 #============ End Helper Functions ================
 def list_projects():
@@ -180,7 +223,88 @@ def run_address_cleaning(project_name):
     logger.info(f'Writing the output to {outpath}')
     ldsz9_in_daterange.to_csv(outpath, index=False)
 
+def run_linkage(project_name):
+    target_db, selection = get_vars()
 
+    logger.info(f'Performing linkage for {project_name} with the following variables:')
+    for var in selection:
+        print(var)
+    
+
+    with open(f'projects/{project_name}.json', 'r') as f:
+        project = json.load(f)
+
+    start_date  = project['start_date']
+    end_date = project['end_date']
+    geoid = project['geoid']
+    file_path = project['filepath']
+
+    output_name = get_output_name(project_name)
+    output_path = f"output/linked_{output_name}.csv"
+
+    start_date = pd.Timestamp(start_date)
+    end_date = pd.Timestamp(end_date)
+
+    # Load dataset
+    logger.info("Loading the patient dataset")
+    df_address = pd.read_csv(file_path) 
+    logger.info(f"Loaded patient dataset with {len(df_address)} records")
+
+    logger.info("Casting patient dates")
+    df_address.loc[:, 'ADDRESS_PERIOD_START'] = pd.to_datetime(df_address['ADDRESS_PERIOD_START'])
+    df_address.loc[:, 'ADDRESS_PERIOD_END'] = pd.to_datetime(df_address['ADDRESS_PERIOD_END'])
+
+
+    logger.info("Performing linkage")
+    linkage_start = time.time()
+
+    result = linkage.db_linkage(df_address, DB_URL, target_db, start_date, end_date, selection)
+
+
+    linkage_end = time.time()
+
+    run_time = linkage_end - linkage_start
+    hours, rem = divmod(run_time, 3600)
+    minutes, seconds = divmod(rem, 60)
+    formatted_time = "{:0>2}:{:0>2}:{:05.2f}".format(int(hours),int(minutes),seconds)
+    logger.info('Linkage finished in {}'.format(formatted_time))
+
+    #result = link.process_data(start_date, end_date, selection_dict, geoid, file_path)
+    logger.info(f"Writing the result to output/linked_{output_name}.csv")
+    output_name = get_output_name(project_name)
+    output_path = f"output/linked_{output_name}.csv"
+    result.to_csv(output_path, index=False)
+
+def show_available_exposomes():
+    '''
+    Displays all exposomes able to be linked against. Should output to the command line available variables in the Database
+    '''
+    engine = create_engine(f"sqlite:///{DB_URL}")
+
+    # Reflect the database schema
+    metadata = MetaData()
+    metadata.reflect(bind=engine)
+    print("-------------Available Exposomes-------------")
+    
+    with engine.connect() as connection:
+        # Iterate through each table and print out float-type columns
+        for table_name, table in metadata.tables.items():
+
+            count = connection.execute(select(func.count()).select_from(table)).scalar()
+            if count == 0:
+                continue
+
+
+            float_columns = [column.name for column in table.columns if isinstance(column.type, Float)]
+            if float_columns:
+                print(f"{table_name}:")
+                for col in float_columns:
+                    print(f"     {col}")
+                    
+    print("---------------------------------------------")
+
+def run_upload(target, filepath):
+    db.upload(target, filepath)
 
 def main():
 
@@ -188,6 +312,10 @@ def main():
     # Define parser and command line arguments
     parser = argparse.ArgumentParser(prog='run_spacescans.py')
     subparser = parser.add_subparsers(dest='command')
+
+
+    show_parse = subparser.add_parser('show')
+
 
     # Parsing for the patient dataset preprocess (Address_cleaning, etc)
     clean_parse = subparser.add_parser('clean_data', help='Process to perform data cleans on the patient dataset')
@@ -202,8 +330,15 @@ def main():
     link_parse = subparser.add_parser('link', help='Link the chosen exposomes to the submitted dataset')
     link_parse.add_argument(
         '-g','--geoid',
-        required=True,
+        required=False,
         help='Pass the geoidentifier used in the patient dataset (9-digit zipcode, 5-digit zipcode, etc)'
+    )
+
+    link_parse.add_argument(
+        '-p','--project_name',
+        default=None,
+        required=False,
+        help='Name of the project'
     )
 
     # Parsing for listing projects
@@ -212,7 +347,7 @@ def main():
     # Parsing for creating a project
     create_proj_parser = subparser.add_parser('create_project', help='Create a new project to run linkage against')
     create_proj_parser.add_argument(
-        '-n','--project_name',
+        '-p','--project_name',
         default=None,
         required=False,
         help='Name of the project'
@@ -246,6 +381,18 @@ def main():
     )
     #### NEED TO ADD FLAGS AND SUCH TO  LINK PARSER
     show_catalog = subparser.add_parser('catalog', help='Display the full exposome catalog available in the databases')
+   
+    
+    upload_parser = subparser.add_parser('upload', help="Upload a file to the database.")
+
+    upload_parser.add_argument(
+        '-f', '--filepath',
+        default='',
+        required=True,
+        help='The location of the file you wish to upload'
+    )
+    
+    
     #=========== END PARSER DECLARATIONS ============
     
     #================ BUILD LOGGER ==================
@@ -292,6 +439,13 @@ def main():
         list_projects()
     elif args.command=='create_project':
         build_project(args.project_name, args.start_date, args.end_date, args.geoid, args.filepath)
+    elif args.command=='link':
+        run_linkage(args.project_name)
+    elif args.command=='show':
+        show_available_exposomes()
+    elif args.command=='upload':
+        run_upload(args.target, args.filepath)
+        
 
 
 

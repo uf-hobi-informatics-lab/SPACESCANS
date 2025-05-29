@@ -1,0 +1,5 @@
+data_list:
+- /blue/bianjiang/cwang6/exposome/original/ACAG/   #this is a folder, put all files in the same folder
+output_dir: /blue/bianjiang/cwang6/exposome/output/spacescan/
+buffer_dir: /home/cwang6/exposome/data/original_data/ 
+exposome_type: acag

@@ -1,0 +1,17 @@
+{
+    "df_address": "/blue/brm_irb201500466/cwang6/exposome_irb201500466/original/address/HPV_YQ_ldsz9_cleaned.csv",
+    "TARGET_START": "2010-01-01",
+    "TARGET_END": "2020-12-31",
+    "exposome_groups": [
+      {
+        "exposome_type": "ZBP",
+        "SELECT_VAR": ["civic","religious"]
+      },
+      {
+        "exposome_type": "WI",
+        "SELECT_VAR": null
+      }
+    ],
+    "project_name": "test"
+  }
+  
