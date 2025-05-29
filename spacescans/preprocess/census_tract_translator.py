@@ -128,6 +128,7 @@ def main(exposome_type, output_path, buffer_path):
         
     formatted_exposome = read_formatted_exposome(exposome_path)
     rename(formatted_exposome, exposome_type)
+
     buffer = read_buffer(buffer_path)
     preprocess_exposome = cencus_tract_tanslator(formatted_exposome, buffer)
     

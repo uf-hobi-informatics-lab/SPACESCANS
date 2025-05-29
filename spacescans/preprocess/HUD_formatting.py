@@ -4,6 +4,9 @@ import re
 from dbfread import DBF
 import csv
 import glob
+import sys
+import argparse
+from args import parse_args_with_defaults
 
 def extract_year_quarter(filename):
     # Assuming the filename is in the format: usps_vac_032023_tractsum_2kx.dbf 
@@ -14,37 +17,35 @@ def extract_year_quarter(filename):
     return year, quarter
 
 def dbfs_to_csv_with_date(dbf_folder_path, csv_file_path):
-    dbf_files = glob.glob(f'{dbf_folder_path}/*.dbf')
-    if not dbf_files:
-        print("No DBF files found in the specified folder.")
-        return
-
-    with open(csv_file_path, 'w', newline='') as csvfile:
+    with open(f'{csv_file_path}formatted_hud.csv', 'w', newline='') as csvfile:
         writer = csv.writer(csvfile)
         headers_written = False
 
-        for dbf_file in dbf_files:
+        for dbf_file in dbf_folder_path:
             year, quarter = extract_year_quarter(dbf_file)
             table = DBF(dbf_file, ignore_missing_memofile=True, lowernames=False)
 
-            # Write the header from the first file and append 'Year', 'Quarter'
+            # Load records into DataFrame for easy column handling
+            df = pd.DataFrame(iter(table))
+            df.columns = [col.upper() for col in df.columns]  # Capitalize all column names
+            df.rename(columns={'GEOID': 'FIPS'}, inplace=True)  # Rename GEOID to FIPS
+
+            # Write headers once
             if not headers_written:
-                # Capitalize ALL field names and append 'YEAR', 'QUARTER'
-                
-                field_names = [field.upper() for field in table.field_names]
-                writer.writerow(['YEAR', 'QUARTER'] + field_names )
+                writer.writerow(['YEAR', 'QUARTER'] + list(df.columns))
                 headers_written = True
 
-            # Write each record with the added year and quarter
-            for record in table:
-                row = [year, quarter] + list(record.values())  
-                writer.writerow(row)
+            # Write data rows
+            for _, row in df.iterrows():
+                writer.writerow([year, quarter] + list(row))
 
-def main():
-    dbf_folder_path = '/Users/allison.burns/Desktop/HUD/DB_Files'
-    csv_file_path = '/Users/allison.burns/Desktop/HUD/OUTPUT/FORMATTED_HUD.csv'
+def main(dbf_folder_path, csv_file_path):
 
     dbfs_to_csv_with_date(dbf_folder_path, csv_file_path)
 
 if __name__ == '__main__':
-    main()
+
+    args = parse_args_with_defaults()
+
+    print("\nApplication Running...")
+    main(args["data_list"],args["output_dir"])    
